@@ -1,10 +1,9 @@
 import logging
-import pyaudio, wave, pylab
+import pyaudio, wave 
 import numpy as np
-import librosa, librosa.display
 import matplotlib.pyplot as plt
-# from pygame import mixer
 from scipy.io.wavfile import write
+
 DURATION = 3
 DEFAULT_SAMPLE_RATE = 44100 
 MAX_INPUT_CHANNELS = 1

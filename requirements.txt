@@ -1,0 +1,7 @@
+soundfile
+matplotlib
+numpy
+scipy
+wave
+streamlit 
+pyaudio

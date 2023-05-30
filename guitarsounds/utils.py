@@ -6,7 +6,6 @@ import scipy.integrate
 from scipy.interpolate import interp1d
 from scipy.optimize import least_squares
 import guitarsounds
-import ipywidgets as widgets
 from guitarsounds.parameters import sound_parameters
 
 # instantiation of the trim time interpolator
@@ -181,11 +180,3 @@ def resample(y, sr_orig, sr_target=22050):
     y_new = scipy.signal.resample(y, num=y_len)
     return y_new
 
-
-def generate_error_widget(text):
-    """
-    Creates a ipywidget error message from a string
-    :param text: python str of the error message
-    :return: widgets.HTLM object corresponding to the error message
-    """
-    return widgets.HTML('<p style="color:#CC4123;">' + text + '</p>')

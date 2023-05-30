@@ -1,5 +1,4 @@
 from soundfile import write
-import IPython.display as ipd
 import matplotlib.ticker as ticker
 import matplotlib.pyplot as plt
 import matplotlib.cm
@@ -13,8 +12,6 @@ from scipy.integrate import trapezoid
 from scipy import signal as sig
 from guitarsounds.parameters import sound_parameters
 import guitarsounds.utils as utils
-from tabulate import tabulate
-import wave
 
 
 """
@@ -344,7 +341,7 @@ class SoundPack(object):
 
         table_data = np.array(table_data).transpose()
 
-        print(tabulate(table_data, headers=['Name', 'Fundamental (Hz)']))
+        print(table_data)
 
     def integral_plot(self, f_bin='all'):
         """
@@ -1055,22 +1052,6 @@ class Signal(object):
         return np.linspace(0,
                            len(self.signal) * (1 / self.sr),
                            len(self.signal))
-
-    def listen(self):
-        """
-        Method to listen the sound signal in a Jupyter Notebook
-        :return: None
-
-        Listening to the sounds imported in the analysis tool allows the
-        user to validate if the sound was well trimmed and filtered
-
-        A temporary file is created, the IPython display Audio function is
-        called on it, and then the file is removed.
-        """
-        file = 'temp.wav'
-        write(file, self.signal, self.sr)
-        ipd.display(ipd.Audio(file))
-        os.remove(file)
 
     def old_plot(self, kind, **kwargs):
         """
