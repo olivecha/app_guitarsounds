@@ -37,7 +37,7 @@ class Sound(object):
         for i in range(num_devices):
             info_dict = self.audio.get_device_info_by_index(i)
 
-    def record(self):
+    def record(self, record_duration=3):
         # start Recording
         self.audio = pyaudio.PyAudio()
         stream = self.audio.open(
@@ -48,7 +48,7 @@ class Sound(object):
                         frames_per_buffer=self.chunk,
                         input_device_index=self.device)
         self.frames = []
-        for i in range(0, int(self.sample_rate / self.chunk * self.duration)):
+        for i in range(0, int(self.sample_rate / self.chunk * record_duration)):
             data = stream.read(self.chunk)
             self.frames.append(data)
         # stop Recording

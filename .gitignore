@@ -2,3 +2,4 @@ __pycache__
 .DS_store
 temp_sounds/*.wav
 guitarsounds_repo
+Example_sounds

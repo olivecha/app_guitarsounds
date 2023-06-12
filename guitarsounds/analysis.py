@@ -4,10 +4,12 @@ import matplotlib.pyplot as plt
 import matplotlib.cm
 import numpy as np
 import os
+import io
 import scipy
 import scipy.optimize
 import scipy.integrate
 import scipy.interpolate
+import scipy.io.wavfile 
 from scipy.integrate import trapezoid
 from scipy import signal as sig
 from guitarsounds.parameters import sound_parameters
@@ -811,15 +813,12 @@ class Sound(object):
             self.SP = SoundParams
 
         if type(data) == str:
-            # Load the sound data using librosa
             if data.split('.')[-1] != 'wav':
                 raise ValueError('Only .wav are supported')
             else:
                 signal, sr = utils.load_wav(data)
-
         elif type(data) == tuple:
             signal, sr = data
-
         else:
             raise TypeError
 
@@ -850,6 +849,13 @@ class Sound(object):
             if use_raw_signal:
                 self.use_raw_signal(normalized=normalize_raw_signal,
                                     return_self=False)
+
+        # Define the file content
+        bytes_wav = bytes()
+        byte_io = io.BytesIO(bytes_wav)
+        scipy.io.wavfile.write(byte_io, self.signal.sr, self.signal.signal)
+        self.file_bytes = byte_io.read()
+        
 
     def condition(self, verbose=True, return_self=False, auto_trim=False, resample=True):
         """
@@ -1007,7 +1013,7 @@ class Sound(object):
         integrals = np.array(integrals)/max_value
 
         # create the bar plotting vectors
-        fig, ax = plt.subplots(figsize=(6, 6))
+        ax = plt.gca()
 
         x = np.arange(0, len(bin_strings))
         y = integrals
