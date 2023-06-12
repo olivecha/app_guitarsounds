@@ -6,3 +6,4 @@ wave
 streamlit 
 pyaudio
 python-docx
+librosa
