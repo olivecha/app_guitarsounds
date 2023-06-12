@@ -5,3 +5,4 @@ scipy
 wave
 streamlit 
 pyaudio
+python-docx
