@@ -3,3 +3,4 @@ __pycache__
 temp_sounds/*.wav
 guitarsounds_repo
 Example_sounds
+figure_cache
