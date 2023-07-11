@@ -4,3 +4,7 @@ temp_sounds/*.wav
 guitarsounds_repo
 Example_sounds
 figure_cache
+report*.docx
+scratch.ipynb
+.ipynb_checkpoints
+test*.png

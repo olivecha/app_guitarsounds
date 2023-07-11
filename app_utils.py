@@ -7,6 +7,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 from PIL import Image
 from guitarsounds.analysis import Plot, Signal, Sound, SoundPack
+from defined_analyses import all_report_headers
 
 def get_file_number(filename):
     """ get the number in a filename """
@@ -55,15 +56,15 @@ def create_figure(analysis, key, *args):
     fig, ax   = plt.subplots(figsize=(10, 6))
     plt.sca(ax)
     analysis(*args)
-    fig.savefig(os.path.join('figure_cache',key))
+    plt.gcf().savefig(os.path.join('figure_cache',key))
 
 def generate_report(report_analyses):
-    """ Génère un rapport d'analyse en format word"""
+    """Génère un rapport d'analyse en format word"""
     document = Document()
     document.add_heading('Rapport guitarsounds',level=1)
     for analysis in report_analyses:
         if report_analyses[analysis]:
-            document.add_heading(analysis, level=2)
+            document.add_heading(all_report_headers[analysis], level=2)
             document.add_picture(f'figure_cache/{analysis}.png',width=Inches(5))
     document.save('report.docx')
 

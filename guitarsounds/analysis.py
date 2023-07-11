@@ -275,7 +275,7 @@ class SoundPack(object):
             raise Exception
         return axs
 
-    def freq_bin_plot(self, f_bin='all'):
+    def freq_bin_plot(self):
         """
         Plots the log envelope of specified frequency bins
         :param f_bin: frequency bins to compare, Supported arguments are :
@@ -289,44 +289,29 @@ class SoundPack(object):
         Example : SoundPack.freq_bin_plot(f_bin='mid') will plot the log-scale 
         envelope of the 'mid' signal of every sound in the SoundPack.
         """
+        translated_bins = {'bass':'Basses',
+                           'mid':'Mids',
+                           'highmid':'High-Mids',
+                           'uppermid':'Upper-Mids',
+                           'presence':'Présence',
+                           'brillance':'Brillance'}
 
-        if f_bin == 'all':
-            # Create one plot per bin
-            fig, axs = plt.subplots(3, 2, figsize=(12, 12))
-            axs = axs.reshape(-1)
-            for key, ax in zip([*list(self.SP.bins.__dict__.keys())[1:], 'brillance'], axs):
-                plt.sca(ax)
-                # plot every sound for a frequency bin
-                norm_factors = np.array([son.bins[key].normalize().norm_factor for son in self.sounds])
-                for i, son in enumerate(self.sounds):
-                    son.bins[key].normalize().old_plot('log envelope', label=son.name)
-                plt.xscale('log')
-                plt.legend()
-                son = self.sounds[-1]
-                title0 = ' ' + key + ' : ' + str(int(son.bins[key].freq_range[0])) + ' - ' + str(
-                         int(son.bins[key].freq_range[1])) + ' Hz, '
-                title1 = 'Norm. Factors : '
-                title2 = 'x, '.join(str(np.around(norm_factor, 0)) for norm_factor in norm_factors)
-                plt.title(title0 + title1 + title2)
-            plt.tight_layout()
-
-        elif f_bin in [*list(sound_parameters().bins.__dict__.keys())[1:], 'brillance']:
-            plt.figure(figsize=(10, 4))
-            # Plot every envelope for a single frequency bin
-            norm_factors = np.array([son.bins[f_bin].normalize().norm_factor for son in self.sounds])
+        # Create one plot per bin
+        fig, axs = plt.subplots(3, 2, figsize=(12, 12))
+        axs = axs.reshape(-1)
+        for key, ax in zip([*list(self.SP.bins.__dict__.keys())[1:], 'brillance'], axs):
+            plt.sca(ax)
+            # plot every sound for a frequency bin
+            norm_factors = np.array([son.bins[key].normalize().norm_factor for son in self.sounds])
             for i, son in enumerate(self.sounds):
-                son.bins[f_bin].normalize().old_plot('log envelope', label=(str(i + 1) + '. ' + son.name))
+                son.bins[key].normalize().plot.log_envelope(label=son.name)
             plt.xscale('log')
             plt.legend()
             son = self.sounds[-1]
-            title0 = ' ' + f_bin + ' : ' + str(int(son.bins[f_bin].freq_range[0])) + ' - ' + str(
-                int(son.bins[f_bin].freq_range[1])) + ' Hz, '
-            title1 = 'Norm. Factors : '
-            title2 = 'x, '.join(str(np.around(norm_factor, 0)) for norm_factor in norm_factors)
-            plt.title(title0 + title1 + title2)
-
-        else:
-            print('invalid frequency bin')
+            title = ' ' + translated_bins[key] + ' : ' + str(int(son.bins[key].freq_range[0])) + ' - ' + str(
+                     int(son.bins[key].freq_range[1])) + ' Hz, '
+            plt.title(title)
+        plt.tight_layout()
 
     def fundamentals(self):
         """
@@ -345,7 +330,7 @@ class SoundPack(object):
 
         print(table_data)
 
-    def integral_plot(self, f_bin='all'):
+    def integral_plot(self):
         """
         Normalized cumulative bin power plot for the frequency bins.
         See `Plot.integral` for more information.
@@ -357,43 +342,30 @@ class SoundPack(object):
         Plots the cumulative integral plot of specified frequency bins
         see help(Plot.integral)
         """
+        translated_bins = {'bass':'Basses',
+                           'mid':'Mids',
+                           'highmid':'High-Mids',
+                           'uppermid':'Upper-Mids',
+                           'presence':'Présence',
+                           'brillance':'Brillance'}
 
-        if f_bin == 'all':
-            # create a figure with 6 axes
-            fig, axs = plt.subplots(3, 2, figsize=(12, 12))
-            axs = axs.reshape(-1)
+        # create a figure with 6 axes
+        fig, axs = plt.subplots(3, 2, figsize=(12, 12))
+        axs = axs.reshape(-1)
 
-            for key, ax in zip(self.bin_strings, axs):
-                plt.sca(ax)
-                norm_factors = np.array([son.bins[key].normalize().norm_factor for son in self.sounds])
-                for sound in self.sounds:
-                    sound.bins[key].plot.integral(label=sound.name)
-                plt.legend()
-                sound = self.sounds[-1]
-                title0 = ' ' + key + ' : ' + str(int(sound.bins[key].freq_range[0])) + ' - ' + str(
-                    int(sound.bins[key].freq_range[1])) + ' Hz, '
-                title1 = 'Norm. Factors : '
-                title2 = 'x, '.join(str(np.around(norm_factor, 0)) for norm_factor in norm_factors)
-                plt.title(title0 + title1 + title2)
-                plt.title(title0 + title1 + title2)
-            plt.tight_layout()
-
-        elif f_bin in self.bin_strings:
-            fig, ax = plt.subplots(figsize=(6, 4))
+        for key, ax in zip(self.bin_strings, axs):
             plt.sca(ax)
-            norm_factors = np.array([son.bins[f_bin].normalize().norm_factor for son in self.sounds])
+            norm_factors = np.array([son.bins[key].normalize().norm_factor for son in self.sounds])
             for sound in self.sounds:
-                sound.bins[f_bin].plot.integral(label=sound.name)
+                sound.bins[key].plot.integral(label=sound.name)
             plt.legend()
             sound = self.sounds[-1]
-            title0 = ' ' + f_bin + ' : ' + str(int(sound.bins[f_bin].freq_range[0])) + ' - ' + str(
-                int(sound.bins[f_bin].freq_range[1])) + ' Hz, '
-            title1 = 'Norm. Factors : '
-            title2 = 'x, '.join(str(np.around(norm_factor, 0)) for norm_factor in norm_factors)
-            plt.title(title0 + title1 + title2)
+            title = ' ' + translated_bins[key] + ' : ' + str(int(sound.bins[key].freq_range[0])) + ' - ' + str(
+                int(sound.bins[key].freq_range[1])) + ' Hz, '
+            plt.title(title)
+            plt.title(title)
+        plt.tight_layout()
 
-        else:
-            print('invalid frequency bin')
             
     def bin_power_table(self):
         """
@@ -446,13 +418,19 @@ class SoundPack(object):
         is adimentional, and can only be used to compare two sounds between  
         eachother.
         """
+        # En français s'il vous plait
+        translated_bins = {'bass':'Basses',
+                           'mid':'Mids',
+                           'highmid':'High-Mids',
+                           'uppermid':'Upper-Mids',
+                           'presence':'Présence',
+                           'brillance':'Brillance'}
         # Compute the bin powers
         bin_strings = self.bin_strings
         integrals = []
 
         # for every sound in the SoundPack
         for sound in self.sounds:
-
             integral = []
             # for every frequency bin in the sound
             for f_bin in bin_strings:
@@ -481,11 +459,15 @@ class SoundPack(object):
                 color = None
 
             if i == n // 2:
-                ax.bar(x, y, width=width, tick_label=list(bin_strings), label=sound.name, color=color)
+                ax.bar(x, y, width=width, 
+                       tick_label=list(translated_bins.values()), 
+                       label=sound.name, 
+                       color=color)
             else:
                 ax.bar(x, y, width=width, label=sound.name, color=color)
-        ax.set_xlabel('frequency bin name')
-        ax.set_ylabel('normalized power')
+        ax.set_xlabel('Bandes de fréquence')
+        ax.set_ylabel('Puissance normalisée')
+        plt.tight_layout()
         plt.legend()
     
     def listen(self):
@@ -562,10 +544,10 @@ class SoundPack(object):
 
             # Sound 1
             plt.plot(freq1, fft1, color='#919191', label=son1.name)
-            plt.scatter(freq1[new_peaks1], fft1[new_peaks1], color='b', label='peaks')
+            plt.scatter(freq1[new_peaks1], fft1[new_peaks1], color='b', label='pics')
             if len(different_peaks1) > 0:
-                plt.scatter(freq1[different_peaks1[0]], fft1[different_peaks1[0]], color='g', label='diff peaks')
-                annotation_string = 'Peaks with ' + str(np.around(difference_threshold, 2)) + ' difference'
+                plt.scatter(freq1[different_peaks1[0]], fft1[different_peaks1[0]], color='g', label='Pics différents')
+                annotation_string = 'Pics avec une différence de ' + str(np.around(difference_threshold, 2)) 
                 plt.annotate(annotation_string, (freq1[different_peaks1[0]] + peak_distance / 2, fft1[different_peaks1[0]]))
 
             # Sound2
@@ -573,12 +555,14 @@ class SoundPack(object):
             plt.scatter(freq2[new_peaks2], -fft2[new_peaks2], color='b')
             if len(different_peaks2) > 0:
                 plt.scatter(freq2[different_peaks2[0]], -fft2[different_peaks2[0]], color='g')
-            plt.title('Fourier Transform Peak Analysis for ' + son1.name + ' and ' + son2.name)
-            plt.grid('on')
+            plt.title('Analyse des pics du spectre fréquentiel pour les sons \n' + son1.name + ' and ' + son2.name)
             plt.legend()
             ax = plt.gca()
-            ax.set_xlabel('frequency (Hz)')
-            ax.set_ylabel('mirror amplitude (0-1)')
+            ax.set_yticks(np.linspace(-1, 1, 6),)
+            ax.set_yticklabels(labels=[np.around(num, 1) for num in np.linspace(-1, 1, 6)])
+            ax.grid(True)
+            ax.set_xlabel('Fréquence (Hz)')
+            ax.set_ylabel('Amplitude (mirroir)')
         else:
             raise ValueError('Unsupported for multiple sounds SoundPacks')
 
@@ -601,12 +585,16 @@ class SoundPack(object):
 
             plt.figure(figsize=(10, 6))
             plt.yscale('symlog')
-            plt.grid('on')
+            ax = plt.gca()
+            ax.set_yticks(np.linspace(-1, 1, 6),)
+            ax.set_yticklabels(labels=[np.around(num, 1) for num in np.linspace(-1, 1, 6)])
+            ax.grid(True)
+
             plt.plot(son1.signal.fft_frequencies()[:index], son1.signal.fft()[:index], label=son1.name)
             plt.plot(son2.signal.fft_frequencies()[:index], -son2.signal.fft()[:index], label=son2.name)
-            plt.xlabel('frequency (Hz)')
-            plt.ylabel('mirror amplitude (normalized)')
-            plt.title('Mirror Fourier Transform for ' + son1.name + ' and ' + son2.name)
+            plt.xlabel('Fréquence (Hz)')
+            plt.ylabel('Amplitude mirroir (normalisée)')
+            plt.title('Spectre fréquentiel en configuration mirroir pour les sons \n' + son1.name + ' et ' + son2.name)
             plt.legend()
 
         else:
@@ -641,10 +629,10 @@ class SoundPack(object):
                              label=son1.name)
             plot2 = ax1.hist(son2.signal.fft_bins(), utils.octave_histogram(fraction), color='orange', alpha=0.6,
                              label=son2.name)
-            ax1.set_title('FT Histogram for ' + son1.name + ' and ' + son2.name)
+            ax1.set_title('Histogramme du spectre fréquentiel pour les sons \n' + son1.name + ' and ' + son2.name)
             ax1.set_xscale('log')
-            ax1.set_xlabel('frequency (Hz)')
-            ax1.set_ylabel('amplitude')
+            ax1.set_xlabel('Fréquence (Hz)')
+            ax1.set_ylabel('Amplitude (dB)')
             ax1.grid('on')
             ax1.legend()
 
@@ -656,10 +644,10 @@ class SoundPack(object):
             ax2.bar(x_values[n_index], diff[n_index], width=bar_widths[n_index], color='orange', alpha=0.6)
             # Positive difference corresponding to sound1
             ax2.bar(x_values[p_index], diff[p_index], width=bar_widths[p_index], color='blue', alpha=0.6)
-            ax2.set_title('Difference ' + son1.name + ' - ' + son2.name)
+            ax2.set_title('Différence entre les spectres des sons \n' + son1.name + ' - ' + son2.name)
             ax2.set_xscale('log')
-            ax2.set_xlabel('frequency (Hz)')
-            ax2.set_ylabel('<- sound 2 : sound 1 ->')
+            ax2.set_xlabel('Fréquence (Hz)')
+            ax2.set_ylabel(f'<- {son2.name} : {son1.name} ->')
             ax2.grid('on')
 
             if ticks == 'bins':
@@ -942,7 +930,7 @@ class Sound(object):
             print(key)
             self.bins[key].normalize().listen()
 
-    def plot_freq_bins(self, bins='all'):
+    def plot_freq_bins(self):
         """
         Method to plot all the frequency bins logarithmic envelopes of a sound
         :return: None
@@ -959,17 +947,18 @@ class Sound(object):
         For more information on the logarithmic envelope, see :
             `help(Signal.log_envelope)`
         """
+        translated_bins = {'bass':'Basses',
+                           'mid':'Mids',
+                           'highmid':'High-Mids',
+                           'uppermid':'Upper-Mids',
+                           'presence':'Présence',
+                           'brillance':'Brillance'}
 
-        if bins[0] == 'all':
-            bins = 'all'
-
-        if bins == 'all':
-            bins = self.bins.keys()
-
+        bins = self.bins.keys()
         for key in bins:
             range_start = str(int(self.bins[key].freq_range[0])) 
             range_end = str(int(self.bins[key].freq_range[1])) 
-            lab = key + ' : ' + range_start + ' - ' + range_end + ' Hz'
+            lab = translated_bins[key] + ' : ' + range_start + ' - ' + range_end + ' Hz'
             self.bins[key].plot.log_envelope(label=lab)
 
         plt.xscale('log')
@@ -1001,6 +990,12 @@ class Sound(object):
         See guitarsounds.parameters.sound_parameters().bins.info() for the
         frequency bin frequency intervals.
         """
+        translated_bins = {'bass':'Basses',
+                           'mid':'Mids',
+                           'highmid':'High-Mids',
+                           'uppermid':'Upper-Mids',
+                           'presence':'Présence',
+                           'brillance':'Brillance'}
         # Compute the bin powers
         bin_strings = list(self.bins.keys())
         integrals = []
@@ -1017,9 +1012,10 @@ class Sound(object):
 
         x = np.arange(0, len(bin_strings))
         y = integrals
-        ax.bar(x, y, tick_label=list(bin_strings))
-        ax.set_xlabel("frequency bin name")
-        ax.set_ylabel("frequency bin power (normalized)")
+        ax.bar(x, y, tick_label=list(translated_bins.values()))
+        ax.set_xlabel("Bandes de fréquence")
+        ax.set_ylabel("Puissance totale (normalisée)")
+        ax.set_title('Amplitude totale des bandes de fréquence')
 
 
 class Signal(object):
@@ -1573,8 +1569,8 @@ class Plot(object):
         """ Plots the time varying real signal as amplitude vs time. """
         plot_kwargs = self.sanitize_kwargs(kwargs)
         plt.plot(self.parent.time(), self.parent.signal, alpha=0.6, **plot_kwargs)
-        plt.xlabel('time (s)')
-        plt.ylabel('amplitude [-1, 1]')
+        plt.xlabel('Temps (s)')
+        plt.ylabel('Amplitude (Entre -1 et 1)')
         plt.grid('on')
 
     def envelope(self, **kwargs):
@@ -1584,8 +1580,8 @@ class Plot(object):
         plot_kwargs = self.sanitize_kwargs(kwargs)
         envelope_arr, envelope_time = self.parent.envelope()
         plt.plot(envelope_time, envelope_arr, **plot_kwargs)
-        plt.xlabel("time (s)")
-        plt.ylabel("amplitude [0, 1]")
+        plt.xlabel("Temps (s)")
+        plt.ylabel("Amplitude (Entre 0 et 1)")
         plt.grid('on')
 
     def log_envelope(self, **kwargs):
@@ -1602,8 +1598,8 @@ class Plot(object):
             max_index = len(log_envelope_time)
 
         plt.plot(log_envelope_time[:max_index], log_envelope[:max_index], **plot_kwargs)
-        plt.xlabel("time (s)")
-        plt.ylabel("amplitude [0, 1]")
+        plt.xlabel("Temps (s)")
+        plt.ylabel("Amplitude (Entre 0 et 1)")
         plt.xscale('log')
         plt.grid('on')
 
@@ -1629,8 +1625,8 @@ class Plot(object):
         plt.plot(self.parent.fft_frequencies()[:last_index],
                  self.parent.fft()[:last_index],
                  **plot_kwargs)
-        plt.xlabel("frequency (Hz)"),
-        plt.ylabel("amplitude (normalized)"),
+        plt.xlabel("Fréquence (Hz)"),
+        plt.ylabel("Amplitude (normalisée)"),
         plt.yscale('log')
         plt.grid('on')
 
@@ -1651,8 +1647,8 @@ class Plot(object):
         # Histogram of frequency values occurrences in octave bins
         plt.hist(self.parent.fft_bins(), utils.octave_histogram(self.parent.SP.general.octave_fraction.value),
                  alpha=0.7, **plot_kwargs)
-        plt.xlabel('frequency (Hz)')
-        plt.ylabel('amplitude (normalized)')
+        plt.xlabel('Fréquence (Hz)')
+        plt.ylabel('Amplitude (normalisée)')
         plt.xscale('log')
         plt.yscale('log')
         plt.grid('on')
@@ -1677,8 +1673,8 @@ class Plot(object):
         fft_range = self.parent.SP.general.fft_range.value
         max_index = np.where(fft_freqs >= fft_range)[0][0]
         peak_indexes, height = self.parent.peaks(height=True)
-        plt.xlabel('frequency (Hz)')
-        plt.ylabel('amplitude')
+        plt.xlabel('Fréquence (Hz)')
+        plt.ylabel('Amplitude (normalisée)')
         plt.yscale('log')
         plt.grid('on')
 
@@ -1802,18 +1798,17 @@ class Plot(object):
         ax.plot(envelope_time[first_index:second_index + first_index],
                 np.exp(zeta_omega * envelope_time[first_index:second_index + first_index]), 
                 c='k',
-                linestyle='--')
+                linestyle='--',
+                label="Courbe d'amortissement")
 
         plt.sca(ax)
         if 'alpha' not in plot_kwargs:
             plot_kwargs['alpha'] = 0.6
-        self.parent.normalize().plot.envelope(**plot_kwargs)
+        self.parent.normalize().plot.envelope(label='Enveloppe du signal')
 
-        if 'label' not in plot_kwargs.keys():
-            ax.legend(['damping curve', 'signal envelope'])
+        ax.legend()
 
-        title = 'Zeta : ' + str(np.around(-zeta_omega / wd, 5)) + ' Fundamental ' + \
-                str(np.around(self.parent.fundamental(), 0)) + 'Hz'
+        title = '$\zeta$ = ' + str(np.around(-zeta_omega / wd, 5)) 
         plt.title(title)
 
     def integral(self, **kwargs):
@@ -1842,8 +1837,8 @@ class Plot(object):
         plt.plot(log_time[2:], integral, **plot_kwargs)
 
         # Add labels and scale
-        plt.xlabel('time (s)')
-        plt.ylabel('cumulative power (normalized)')
+        plt.xlabel('Temps (s)')
+        plt.ylabel('Puissance cumulative (normalisée)')
         plt.xscale('log')
         plt.grid('on')
 
