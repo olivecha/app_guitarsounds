@@ -3,3 +3,4 @@ python3-pyaudio
 libasound2 
 alsa-utils 
 alsa-oss
+ffmpeg
