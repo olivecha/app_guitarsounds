@@ -7,4 +7,3 @@ report*.docx
 scratch.ipynb
 .ipynb_checkpoints
 test*.png
-figure_cache/*.png
