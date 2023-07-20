@@ -1,9 +1,9 @@
-soundfile
+pysoundfile
 matplotlib
 numpy
 scipy
-wave
 streamlit 
 pyaudio
 python-docx
 librosa
+streamlit-audiorecorder
