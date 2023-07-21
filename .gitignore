@@ -8,3 +8,4 @@ scratch.ipynb
 .ipynb_checkpoints
 test*.png
 figure_cache/*.png
+temp.wav
