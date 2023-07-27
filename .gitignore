@@ -9,3 +9,4 @@ scratch.ipynb
 test*.png
 figure_cache/*.png
 temp.wav
+.gitkeep

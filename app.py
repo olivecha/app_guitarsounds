@@ -60,9 +60,10 @@ def generate_figure_and_set_state(analysis_call, key, sound):
 # Global application setup
 title = "Guitarsound: analyse comparative de sons de guitare"
 st.title(title)
-sounds_io, analysis, help = st.tabs(["Ajouter des sons", 
-                                     "Analyser des sons",
-                                     "Aide"])
+sounds_io, analysis, help_tab, about = st.tabs(["Ajouter des sons", 
+                                                "Analyser des sons",
+                                                "Aide",
+                                                "À Propos"])
 
 # First tab (Input / Output)
 with sounds_io: 
@@ -239,9 +240,12 @@ with analysis:
     else:
         st.write('Veuillez sélectioner un son')
 
-with help:
+with help_tab:
     with open(os.path.join('documentation', 'documentation.md')) as md_file:
         md_string = md_file.read()
     st.markdown(md_string)
+
+with about:
+    st.write('Texte expliquant le projet')
     
 
