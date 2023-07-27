@@ -21,6 +21,8 @@ import defined_analyses
 
 # Clear the old figures on start
 if 'cleared_figures' not in st.session_state:
+    if 'figure_cache' not in os.listdir():
+        os.mkdir('figure_cache')
     for f in os.listdir('figure_cache'):
         os.remove(os.path.join('figure_cache', f))
     st.session_state['cleared_figures'] = True
@@ -46,6 +48,11 @@ def update_file_load_status():
     """ function for upload button call_back """
     st.session_state['upload_status'] = True
 
+def reset_analyses():
+    st.session_state['analysis_menu'] = {name:None for name in analysis_names}
+    st.session_state['report_analyses'] = {name:False for name in analysis_names}
+    st.session_state['cached_images'] = {name:None for name in analysis_names}
+
 def set_state(menu, analysis, state):
     """ set the session state of a menu to organise outputs """
     st.session_state[menu][analysis] = state 
@@ -57,9 +64,19 @@ def generate_figure_and_set_state(analysis_call, key, sound):
     else:
         set_state('analysis_menu', key, 'listen')
 
-# Global application setup
+# Title and logo
 title = "Guitarsound: analyse comparative de sons de guitare"
-st.title(title)
+col_logo, col_title = st.columns([1, 2])
+with col_title:
+    st.title(title)
+with col_logo:
+    if 'cached_logo' not in st.session_state:
+        image = Image.open('documentation/figures/logo.png')
+        st.session_state['cached_logo'] = image
+    st.write('')
+    st.write('')
+    st.image(st.session_state['cached_logo'], use_column_width='always')
+
 sounds_io, analysis, help_tab, about = st.tabs(["Ajouter des sons", 
                                                 "Analyser des sons",
                                                 "Aide",
@@ -83,6 +100,7 @@ with sounds_io:
         sound_number = get_cached_next_number(st.session_state)
         st.session_state['sounds_cache'][sound_number] = new_sound
         st.session_state['reference_recording'] = audio.tobytes()
+        st.warning("Les sons enregistrés ne sont pas sauvegardés d'une session à l'autre \n vous pouvez les télécharger si vous voulez les conserver", icon="⚠️")
     
     expander = col2.expander("Téléverser un son")
     uploaded_file = expander.file_uploader("Choose a file", 
@@ -170,7 +188,7 @@ with analysis:
             st.session_state['cached_images'] = {name:None for name in analysis_names}
             st.session_state['number_of_sounds'] = len(st.session_state['sounds_cache'])
 
-        # Update only if the number of sounds has changed
+        # Update if the number of sounds has changed
         elif 'number_of_sounds' in st.session_state:
             if len(st.session_state['sounds_cache']) != st.session_state['number_of_sounds']:
                 st.session_state['analysis_menu'] = {name:None for name in analysis_names}
@@ -226,9 +244,11 @@ with analysis:
                 st.empty().markdown(helpstr)
                 st.empty().image(analysis_figures[analysis], use_column_width=True)
 
-        colrep, coldown = st.columns(2)
+        colrestart, colrep, coldown = st.columns(3)
 
-        print(st.session_state['report_analyses'])
+        colrestart.button(label='Réinitialiser les analyses',
+                          on_click=reset_analyses)
+
         if colrep.button(label='Générer un rapport',
                          on_click=generate_report,
                          args=(st.session_state['report_analyses'],)):

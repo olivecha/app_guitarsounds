@@ -117,7 +117,7 @@ class SoundPack(object):
             # If the sounds are not conditionned condition them
             for s in self.sounds:
                 if ~hasattr(s, 'signal'):
-                    s.condition()
+                    s.condition(auto_trim=True)
 
         if equalize_time:
             self.equalize_time()
@@ -150,7 +150,10 @@ class SoundPack(object):
         # Create Sound instances from files
         self.sounds = []
         for file, name, fundamental in zip(sound_files, names, fundamentals):
-            self.sounds.append(Sound(file, name=name, fundamental=fundamental,
+            self.sounds.append(Sound(file, 
+                                     name=name, 
+                                     fundamental=fundamental,
+                                     auto_trim=True,
                                      SoundParams=self.SP))
 
     def equalize_time(self):
@@ -540,7 +543,7 @@ class SoundPack(object):
 
             # Plot the output
             plt.figure(figsize=(10, 6))
-            plt.yscale('symlog', linthresh=10e-1)
+            plt.yscale('symlog', linthresh=1e-2)
 
             # Sound 1
             plt.plot(freq1, fft1, color='#919191', label=son1.name)
@@ -584,7 +587,7 @@ class SoundPack(object):
             index = np.where(fft_freq_value > fft_range_value)[0][0]
 
             plt.figure(figsize=(10, 6))
-            plt.yscale('symlog')
+            plt.yscale('symlog', linthresh=1e-2)
             ax = plt.gca()
             ax.set_yticks(np.linspace(-1, 1, 6),)
             ax.set_yticklabels(labels=[np.around(num, 1) for num in np.linspace(-1, 1, 6)])
@@ -771,7 +774,7 @@ class Sound(object):
     """
 
     def __init__(self, data, name='', fundamental=None, condition=True, 
-                 auto_trim=False, use_raw_signal=False, 
+                 auto_trim=True, use_raw_signal=False, 
                  normalize_raw_signal=False, SoundParams=None):
         """
         Creates a Sound instance from a .wav file. A string can be supplied to
@@ -829,6 +832,7 @@ class Sound(object):
         self.brillance = None
 
         if condition:
+            print('reached')
             self.condition(verbose=True,
                            return_self=False,
                            auto_trim=auto_trim,
@@ -1314,27 +1318,72 @@ class Signal(object):
         The overlap value should be smaller than the window value.
         :return: Amplitude envelope of the signal
         """
-        if window is None:
-            window = self.SP.envelope.frame_size.value
-        if overlap is None:
-            overlap = window // 2
-        elif overlap >= window:
-            raise ValueError('Overlap must be smaller than window')
-        signal_array = np.abs(self.signal)
-        t = self.time()
-        # Empty envelope and envelope time
-        env = [0]
-        env_time = [0]
-        idx = 0
-        while idx + window < signal_array.shape[0]:
-            env.append(np.max(signal_array[idx:idx + window]))
-            pt_idx = np.argmax(signal_array[idx:idx + window]) + idx
-            env_time.append(t[pt_idx])
-            idx += overlap
-        _, unique_time_index = np.unique(env_time, return_index=True)
-        return np.array(env)[unique_time_index], np.unique(env_time)
+        # Detect the onset from noise level
+        sig_data = np.abs(self.signal)
+        onset_data = sig_data.copy()[:np.argmax(sig_data)]
+        guess_tresh = np.mean(sig_data[np.nonzero(self.time() > 0.05)[0][0]])*(10*np.max(sig_data))
+        idx_onset = np.nonzero(sig_data > guess_tresh)[0][0]
+        
+        # Compute the envelop from onset to max value
+        start_idx = idx_onset
+        end_idx = np.argmax(sig_data)
+        onset_points = [0.]
+        onset_idxs = [idx_onset]
+        window = 20
+        step = 11
+        current_idx = start_idx
+        # Small window max value envelop
+        while True:
+            onset_points.append(np.max(sig_data[current_idx:current_idx+window]))
+            onset_idxs.append(current_idx + np.argmax(sig_data[current_idx:current_idx+window]))
+            current_idx += step
+            if current_idx > end_idx:
+                break
+        onset_points.append(np.max(sig_data[current_idx-step:end_idx+1]))
+        onset_idxs.append(current_idx - step +np.argmax(sig_data[current_idx-step:end_idx+1]))
+        # Filter for stricly increasing
+        increasing_onset_points = [onset_points[0]]
+        increasing_onset_idxs = [onset_idxs[0]]
+        for i in range(1, len(onset_points)):
+            if (onset_points[i] - increasing_onset_points[-1]) > 1e-2*np.max(sig_data):
+                increasing_onset_points.append(onset_points[i])
+                increasing_onset_idxs.append(onset_idxs[i])
+        onset_points = increasing_onset_points
+        onset_idxs = increasing_onset_idxs
+        # Use 2 x fundamental as period
+        fundamental = self.fft_frequencies()[self.peaks()][0]
+        period = 1/fundamental
+        window = int(period * self.sr)*2
+        step = window-1
+        envelop_points = onset_points.copy()
+        envelop_idxs = onset_idxs.copy()
+        current_idx = end_idx + 1
+        # Fondamental period window max value envelop
+        while True:
+            idx_at_max = current_idx + np.argmax(sig_data[current_idx:current_idx+window])
+            if np.abs(idx_at_max - envelop_idxs[-1]) > 10:
+                envelop_points.append(np.max(sig_data[current_idx:current_idx+window]))
+                envelop_idxs.append(current_idx + np.argmax(sig_data[current_idx:current_idx+window]))
+            current_idx += step
+            if current_idx > len(sig_data):
+                break
+        # Remove duplicates
+        envelop_idxs, unique_idx = np.unique(envelop_idxs, return_index=True)
+        envelop_points = np.array(envelop_points)[unique_idx]
+        # Set concave points to the mean of the min and mean
+        convex_points = [envelop_points[0], envelop_points[1]]
+        for i in range(2, len(envelop_points)-1):
+            if envelop_points[i] < envelop_points[i-1] and envelop_points[i] < envelop_points[i+1]:
+                min_value = np.min([envelop_points[i-1], envelop_points[i+1]])
+                mean_value = np.mean([envelop_points[i-1], envelop_points[i+1]])
+                convex_points.append(np.mean([min_value, mean_value]))
+            else:
+                convex_points.append(envelop_points[i])
+        convex_points.append(envelop_points[-1])
+        convex_points = np.array(convex_points)        
+        return convex_points, self.time()[envelop_idxs]
 
-    def log_envelope(self):
+    def log_envelope(self, legacy=False):
         """
         Computes the logarithmic scale envelope of the signal.
         The width of the samples increases exponentially so that
@@ -1342,52 +1391,55 @@ class Signal(object):
         an X axis logarithmic scale.
         :return: The log envelope and the time vector associated in a tuple
         """
-        if self.onset is None:
-            onset = np.argmax(np.abs(self.signal))
-        else:
-            onset = self.onset
-
-        start_time = self.SP.log_envelope.start_time.value
-        while start_time > (onset / self.sr):
-            start_time /= 10.
-
-        start_exponent = int(np.log10(start_time))  # closest 10^x value for smooth graph
-
-        if self.SP.log_envelope.min_window.value is None:
-            min_window = 15 ** (start_exponent + 4)
-            if min_window < 15:  # Value should at least be 10
-                min_window = 15
-        else:
-            min_window = self.SP.log_envelope.min_window.value
-
-        # initial values
-        current_exponent = start_exponent
-        current_time = 10 ** current_exponent  # start time on log scale
-        index = int(current_time * self.sr)  # Start at the specified time
-        window = min_window  # number of samples per window
-        overlap = window // 2
-        log_envelope = [0]
-        log_envelope_time = [0]  # First value for comparison
-
-        while index + window <= len(self.signal):
-
-            while log_envelope_time[-1] < 10 ** (current_exponent + 1):
-                if (index + window) < len(self.signal):
-                    log_envelope.append(np.max(np.abs(self.signal[index:index + window])))
-                    pt_idx = np.argmax(np.abs(self.signal[index:index + window]))
-                    log_envelope_time.append(self.time()[index + pt_idx])
-                    index += overlap
-                else:
-                    break
-
-            if window * 10 < self.SP.log_envelope.max_window.value:
-                window = window * 10
+        if legacy:
+            if self.onset is None:
+                onset = np.argmax(np.abs(self.signal))
             else:
-                window = self.SP.log_envelope.max_window.value
+                onset = self.onset
+
+            start_time = self.SP.log_envelope.start_time.value
+            while start_time > (onset / self.sr):
+                start_time /= 10.
+
+            start_exponent = int(np.log10(start_time))  # closest 10^x value for smooth graph
+
+            if self.SP.log_envelope.min_window.value is None:
+                min_window = 15 ** (start_exponent + 4)
+                if min_window < 15:  # Value should at least be 10
+                    min_window = 15
+            else:
+                min_window = self.SP.log_envelope.min_window.value
+
+            # initial values
+            current_exponent = start_exponent
+            current_time = 10 ** current_exponent  # start time on log scale
+            index = int(current_time * self.sr)  # Start at the specified time
+            window = min_window  # number of samples per window
             overlap = window // 2
-            current_exponent += 1
-        time, idxs = np.unique(log_envelope_time, return_index=True)
-        return np.array(log_envelope)[idxs], time
+            log_envelope = [0]
+            log_envelope_time = [0]  # First value for comparison
+
+            while index + window <= len(self.signal):
+
+                while log_envelope_time[-1] < 10 ** (current_exponent + 1):
+                    if (index + window) < len(self.signal):
+                        log_envelope.append(np.max(np.abs(self.signal[index:index + window])))
+                        pt_idx = np.argmax(np.abs(self.signal[index:index + window]))
+                        log_envelope_time.append(self.time()[index + pt_idx])
+                        index += overlap
+                    else:
+                        break
+
+                if window * 10 < self.SP.log_envelope.max_window.value:
+                    window = window * 10
+                else:
+                    window = self.SP.log_envelope.max_window.value
+                overlap = window // 2
+                current_exponent += 1
+            time, idxs = np.unique(log_envelope_time, return_index=True)
+            return np.array(log_envelope)[idxs], time
+        else:
+            return self.envelope()
 
     def find_onset(self, verbose=True):
         """
