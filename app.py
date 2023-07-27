@@ -7,6 +7,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from src.sound import sound
 import librosa
+from audiorecorder import audiorecorder
 from guitarsounds.utils import load_wav
 from guitarsounds.analysis import Sound, Plot, SoundPack
 from app_utils import get_file_number, get_cached_next_number
@@ -35,6 +36,9 @@ if 'sounds_cache' not in st.session_state:
 # Flag for the analysis output
 if 'analysis_output' not in st.session_state:
     st.session_state['analysis_output'] = {}
+
+if 'reference_recording' not in st.session_state:
+    st.session_state['reference_recording'] = ''
 
 # Functions modifying the session state 
 # Need to be defined in this file
@@ -67,18 +71,17 @@ with sounds_io:
     col2.write('')
 
     expander1 = col1.expander("Enregistrer un son")
-    record_button = expander1.button('Enregistrer un son',
-                                use_container_width=True)
-    record_duration = expander1.number_input("Temps d'enregistrement (secondes)",
-                                             value=3,
-                                             min_value=1,
-                                             max_value=4)
-    if record_button:
-        with st.spinner(f'Enregistrement durant {record_duration} secondes ....'):
-            sound.record(record_duration)
-        new_sound = Sound('temp.wav')
+    with expander1:
+        audio = audiorecorder("Cliquez pour débuter l'enregistrement", "Stop")
+
+    if (st.session_state['reference_recording'] != audio.tobytes()) and (len(audio) > 0):
+        with NamedTemporaryFile() as f:
+            f.write(audio.tobytes())
+            sigarray, sr = librosa.load(f.name, sr=None)
+        new_sound = Sound((sigarray, sr))
         sound_number = get_cached_next_number(st.session_state)
         st.session_state['sounds_cache'][sound_number] = new_sound
+        st.session_state['reference_recording'] = audio.tobytes()
     
     expander = col2.expander("Téléverser un son")
     uploaded_file = expander.file_uploader("Choose a file", 
