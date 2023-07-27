@@ -5,7 +5,6 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
-from src.sound import sound
 import librosa
 from audiorecorder import audiorecorder
 from guitarsounds.utils import load_wav
@@ -95,6 +94,7 @@ with sounds_io:
     if (st.session_state['reference_recording'] != audio.tobytes()) and (len(audio) > 0):
         with NamedTemporaryFile() as f:
             f.write(audio.tobytes())
+            print(f.name)
             sigarray, sr = librosa.load(f.name, sr=None)
         new_sound = Sound((sigarray, sr))
         sound_number = get_cached_next_number(st.session_state)
