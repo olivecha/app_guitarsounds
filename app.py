@@ -5,7 +5,8 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
-import librosa
+import soundfile as sf
+from pydub import AudioSegment
 from audiorecorder import audiorecorder
 from guitarsounds.utils import load_wav
 from guitarsounds.analysis import Sound, Plot, SoundPack
@@ -87,32 +88,40 @@ with sounds_io:
     col1.write('')
     col2.write('')
 
+    # Audio recording sound loading
     expander1 = col1.expander("Enregistrer un son")
     with expander1:
         audio = audiorecorder("Cliquez pour débuter l'enregistrement", "Stop")
 
     if (st.session_state['reference_recording'] != audio.tobytes()) and (len(audio) > 0):
-        with NamedTemporaryFile() as f:
-            f.write(audio.tobytes())
-            print(f.name)
-            sigarray, sr = librosa.load(f.name, sr=None)
-        new_sound = Sound((sigarray, sr))
+        with open('temp.mp3', 'wb') as temp_audio:
+            temp_audio.write(audio.tobytes())
+        sigarray, sr = sf.read('temp.mp3')
+        if sigarray.shape[1] == 2:
+            new_sound = Sound((sigarray[:,0], sr))
+        else:
+            new_sound = Sound((sigarray, sr))
         sound_number = get_cached_next_number(st.session_state)
         st.session_state['sounds_cache'][sound_number] = new_sound
         st.session_state['reference_recording'] = audio.tobytes()
         st.warning("Les sons enregistrés ne sont pas sauvegardés d'une session à l'autre \n vous pouvez les télécharger si vous voulez les conserver", icon="⚠️")
     
+    # File upload sound loading
     expander = col2.expander("Téléverser un son")
     uploaded_file = expander.file_uploader("Choose a file", 
                                            on_change=update_file_load_status,
                                            label_visibility='collapsed')
     
     if uploaded_file is not None and st.session_state['upload_status']:
-
-        with NamedTemporaryFile() as f:
-            f.write(uploaded_file.read())
-            sigarray, sr = librosa.load(f.name, sr=None)
-        new_sound = Sound((sigarray, sr))
+        print(uploaded_file.__dir__())
+        if uploaded_file.name.split('.')[-1] == 'm4a':
+            if 'temp.wav' in os.listdir():
+                os.remove('temp.wav')
+            _ = AudioSegment.from_file(uploaded_file, 'm4a').split_to_mono()[0].export('temp.wav', format='wav')
+            new_sound = Sound('temp.wav')
+        else:
+            sigarray, sr = sf.read(uploaded_file)
+            new_sound = Sound((sigarray, sr))
         sound_number = get_cached_next_number(st.session_state)
         st.session_state['sounds_cache'][sound_number] = new_sound
         st.session_state['upload_status'] = False

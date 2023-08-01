@@ -832,7 +832,6 @@ class Sound(object):
         self.brillance = None
 
         if condition:
-            print('reached')
             self.condition(verbose=True,
                            return_self=False,
                            auto_trim=auto_trim,
