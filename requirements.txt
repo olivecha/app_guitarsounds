@@ -3,6 +3,8 @@ numpy
 scipy
 streamlit 
 pyaudio
+pydub
+ffprobe
 python-docx
 librosa
 pyaudio
