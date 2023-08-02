@@ -94,8 +94,8 @@ with sounds_io:
         audio = audiorecorder("Cliquez pour débuter l'enregistrement", "Stop")
 
     if (st.session_state['reference_recording'] != audio.tobytes()) and (len(audio) > 0):
-        with open('temp.mp3', 'wb') as temp_audio:
-            temp_audio.write(audio.tobytes())
+        temp_audio = open('temp.mp3', 'wb') 
+        temp_audio.write(audio.tobytes())
         fail_count = 0
         while True:
             try:
