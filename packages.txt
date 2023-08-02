@@ -6,7 +6,6 @@ alsa-oss
 ffmpeg
 dialog 
 ffmpeg-doc 
-i965-va-driver-shaders 
 libasound2-plugins 
 libasound2-doc
 libbluray-bdj 
@@ -24,11 +23,5 @@ serdi
 sndiod
 sordi 
 speex 
-opencl-icd 
 portaudio19-doc 
 python-pyaudio-doc
-nvidia-vdpau-driver 
-nvidia-tesla-440-vdpau-driver
-nvidia-tesla-418-vdpau-driver 
-nvidia-legacy-390xx-vdpau-driver
-nvidia-legacy-340xx-vdpau-driver
