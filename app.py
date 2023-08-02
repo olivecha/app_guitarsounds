@@ -96,7 +96,15 @@ with sounds_io:
     if (st.session_state['reference_recording'] != audio.tobytes()) and (len(audio) > 0):
         with open('temp.mp3', 'wb') as temp_audio:
             temp_audio.write(audio.tobytes())
-        sigarray, sr = sf.read('temp.mp3')
+        fail_count = 0
+        while True:
+            try:
+                sigarray, sr = sf.read('temp.mp3')
+            except RuntimeError:
+                fail_count += 1
+                if fail_count > 5:
+                    break
+
         if sigarray.shape[1] == 2:
             new_sound = Sound((sigarray[:,0], sr))
         else:
@@ -113,7 +121,6 @@ with sounds_io:
                                            label_visibility='collapsed')
     
     if uploaded_file is not None and st.session_state['upload_status']:
-        print(uploaded_file.__dir__())
         if uploaded_file.name.split('.')[-1] == 'm4a':
             if 'temp.wav' in os.listdir():
                 os.remove('temp.wav')
