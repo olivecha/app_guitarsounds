@@ -107,8 +107,6 @@ pydeck==0.8.0b4
 pydub==0.25.1
 Pygments==2.15.1
 Pympler==1.0.1
-pyobjc-core==9.2
-pyobjc-framework-Cocoa==9.2
 pyparsing==3.0.9
 PyQt5==5.15.7
 PyQt5-sip==12.11.0
