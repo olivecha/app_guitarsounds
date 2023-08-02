@@ -65,7 +65,7 @@ def generate_figure_and_set_state(analysis_call, key, sound):
         set_state('analysis_menu', key, 'listen')
 
 # Title and logo
-title = "Guitarsound: analyse comparative de sons de guitare"
+title = "Analyse comparative de sons de guitare"
 col_logo, col_title = st.columns([1, 2])
 with col_title:
     st.title(title)
