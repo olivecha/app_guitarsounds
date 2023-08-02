@@ -91,24 +91,15 @@ with sounds_io:
     # Audio recording sound loading
     expander1 = col1.expander("Enregistrer un son")
     with expander1:
+        now = time.time()
         audio = audiorecorder("Cliquez pour débuter l'enregistrement", "Stop")
+        recording_time  = time.time() - now
 
     if (st.session_state['reference_recording'] != audio.tobytes()) and (len(audio) > 0):
-        temp_audio = open('temp.mp3', 'wb') 
-        temp_audio.write(audio.tobytes())
-        fail_count = 0
-        while True:
-            try:
-                sigarray, sr = sf.read('temp.mp3')
-            except RuntimeError:
-                fail_count += 1
-                if fail_count > 5:
-                    break
-
-        if sigarray.shape[1] == 2:
-            new_sound = Sound((sigarray[:,0], sr))
-        else:
-            new_sound = Sound((sigarray, sr))
+        with open('recording.ogg', 'wb') as recordfile:
+            recordfile.write(audio.tobytes())
+        sigarray, sr = sf.read('recording.ogg')
+        new_sound = Sound((sigarray[:, 0], sr))
         sound_number = get_cached_next_number(st.session_state)
         st.session_state['sounds_cache'][sound_number] = new_sound
         st.session_state['reference_recording'] = audio.tobytes()
