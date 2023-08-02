@@ -98,9 +98,6 @@ with sounds_io:
     if (st.session_state['reference_recording'] != audio.tobytes()) and (len(audio) > 0):
         with open('recording.ogg', 'wb') as recordfile:
             recordfile.write(audio.tobytes())
-        st.download_button(label=':arrow_down:',
-                           data=audio.tobytes(),
-                           file_name='recording.ogg',)
         sigarray, sr = sf.read('recording.ogg')
         new_sound = Sound((sigarray[:, 0], sr))
         sound_number = get_cached_next_number(st.session_state)
@@ -146,6 +143,7 @@ with sounds_io:
                                'Nom du son', 
                                label_visibility='collapsed')
         names.append(name)
+        col4,write(' ')
         col4.audio(sound.signal.signal, sample_rate=sound.signal.sr)
         col5.download_button(label=':arrow_down:',
                              data=sound.file_bytes,
