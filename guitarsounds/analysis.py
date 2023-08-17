@@ -354,19 +354,35 @@ class SoundPack(object):
 
         # create a figure with 6 axes
         fig, axs = plt.subplots(3, 2, figsize=(12, 12))
-        axs = axs.reshape(-1)
 
-        for key, ax in zip(self.bin_strings, axs):
+        # A plot per frequency bin
+        for key, ax in zip(self.bin_strings, axs.flatten()):
             plt.sca(ax)
-            norm_factors = np.array([son.bins[key].normalize().norm_factor for son in self.sounds])
+            # For each sound in the SoundPack
+            current_bin_integrals = []
+            time_vectors = []
             for sound in self.sounds:
-                sound.bins[key].plot.integral(label=sound.name)
-            plt.legend()
-            sound = self.sounds[-1]
-            title = ' ' + translated_bins[key] + ' : ' + str(int(sound.bins[key].freq_range[0])) + ' - ' + str(
-                int(sound.bins[key].freq_range[1])) + ' Hz, '
-            plt.title(title)
-            plt.title(title)
+                # Get the envelope and time values of the bin of the current sound
+                envelope, envelope_time = sound.bins[key].normalize().envelope()
+                time_vectors.append(envelope_time)
+                # compute the cumulative integral
+                integral = [trapezoid(envelope[:i], envelope_time[:i]) for i in np.arange(2, len(envelope), 1)]
+                current_bin_integrals.append(integral)
+            max_value_for_bin = np.max([np.max(integ) for integ in current_bin_integrals])
+            current_bin_integrals = [integ / max_value_for_bin for integ in current_bin_integrals]
+            time_vectors = [time_vec/np.max(time_vec) for time_vec in time_vectors]
+            # Plot the normalized curves
+            for time_vec, integral, sound in zip(time_vectors, current_bin_integrals, self.sounds):
+                plt.plot(time_vec[2:], integral, label=sound.name)
+                plt.legend()
+                lower = str(int(sound.bins[key].freq_range[0])) 
+                upper = str(int(sound.bins[key].freq_range[1])) 
+                plt.title(f'Envelope cummulative ({translated_bins[key]} {lower} - {upper})')
+            ax.set_xlabel('Temps (normalisé)')
+            ax.set_ylabel('Envelope cummulative')
+            plt.xscale('log')
+            plt.grid('on')
+
         plt.tight_layout()
 
             
@@ -430,20 +446,33 @@ class SoundPack(object):
                            'brillance':'Brillance'}
         # Compute the bin powers
         bin_strings = self.bin_strings
-        integrals = []
+        sound_integrals = []
 
         # for every sound in the SoundPack
         for sound in self.sounds:
-            integral = []
+            bin_integrals = {}
             # for every frequency bin in the sound
             for f_bin in bin_strings:
                 log_envelope, log_time = sound.bins[f_bin].normalize().log_envelope()
-                integral.append(trapezoid(log_envelope, log_time))
+                bin_integrals[f_bin] = trapezoid(log_envelope, log_time)
 
             # a list of dict for every sound
-            integral = np.array(integral)
-            integral /= np.max(integral)
-            integrals.append(integral)
+            sound_integrals.append(bin_integrals)
+
+        # Normalize globally
+        global_max = 0
+        for integral_dict in sound_integrals :
+            for key in integral_dict:
+                if np.max(integral_dict[key]) > global_max:
+                    global_max = np.max(integral_dict[key])
+
+        # Restructure into list
+        integrals = []
+        for integral_dict in sound_integrals:
+            integral_list = []
+            for key in integral_dict:
+                integral_list.append(integral_dict[key] / global_max)
+            integrals.append(integral_list)
 
         # create the bar plotting vectors
         fig, ax = plt.subplots(figsize=(6, 6))
@@ -672,71 +701,33 @@ class SoundPack(object):
 
     def integral_compare(self, f_bin='all'):
         """
-          Cumulative bin envelope integral comparison for two signals
+        Cumulative bin envelope integral comparison for two signals
 
-          :param f_bin: frequency bins to compare, Supported arguments are :
-          'all', 'bass', 'mid', 'highmid', 'uppermid', 'presence', 'brillance'
-          :return: None
+        :param f_bin: frequency bins to compare, Supported arguments are :
+        'all', 'bass', 'mid', 'highmid', 'uppermid', 'presence', 'brillance'
+        :return: None
 
-          __ Dual SoundPack Method __
-          Plots the cumulative integral plot of specified frequency bins
-          and their difference as surfaces
-          """
+        __ Dual SoundPack Method __
+        Plots the cumulative integral plot of specified frequency bins
+        and their difference as surfaces
+        """
 
-        # Case when plotting all the frequency bins
-        if f_bin == 'all':
-            fig, axs = plt.subplots(3, 2, figsize=(16, 16))
-            axs = axs.reshape(-1)
+        fig, axs = plt.subplots(3, 2, figsize=(16, 16))
+        axs = axs.reshape(-1)
 
-            # get the bins frequency values
-            self.bin_strings = self.sounds[0].bins.keys()
-            bins1 = self.sounds[0].bins.values()
-            bins2 = self.sounds[1].bins.values()
+        # get the bins frequency values
+        self.bin_strings = self.sounds[0].bins.keys()
+        bins1 = self.sounds[0].bins.values()
+        bins2 = self.sounds[1].bins.values()
 
-            for signal1, signal2, bin_string, ax in zip(bins1, bins2, self.bin_strings, axs):
-                # Compute the log time and envelopes integrals
-                log_envelope1, log_time1 = signal1.normalize().log_envelope()
-                log_envelope2, log_time2 = signal2.normalize().log_envelope()
-                env_range1 = np.arange(2, len(log_envelope1), 1)
-                env_range2 = np.arange(2, len(log_envelope2), 1)
-                integral1 = np.array([trapezoid(log_envelope1[:i], log_time1[:i]) for i in env_range1])
-                integral2 = np.array([trapezoid(log_envelope2[:i], log_time2[:i]) for i in env_range2])
-                time1 = log_time1[2:len(log_time1):1]
-                time2 = log_time2[2:len(log_time2):1]
-
-                # resize arrays to match shape
-                common_len = min(len(time1), len(time2))
-                time1 = time1[:common_len]
-                time2 = time2[:common_len]
-                integral1 = integral1[:common_len]
-                integral2 = integral2[:common_len]
-                # Normalize
-                max_value = np.max(np.hstack([integral1, integral2]))
-                integral1 /= max_value
-                integral2 /= max_value
-
-                # plot the integral area curves
-                ax.fill_between(time1, integral1, label=self.sounds[0].name, alpha=0.4)
-                ax.fill_between(time2, -integral2, label=self.sounds[1].name, alpha=0.4)
-                ax.fill_between(time2, integral1 - integral2, color='g', label='int diff', alpha=0.6)
-                ax.set_xlabel('time (s)')
-                ax.set_ylabel('mirror cumulative power (normalized)')
-                ax.set_xscale('log')
-                ax.set_title(bin_string)
-                ax.legend()
-                ax.grid('on')
-
-            plt.tight_layout()
-
-        elif f_bin in self.bin_strings:
-
-            # Compute the log envelopes and areau curves
-            signal1 = self.sounds[0].bins[f_bin]
-            signal2 = self.sounds[1].bins[f_bin]
+        for signal1, signal2, bin_string, ax in zip(bins1, bins2, self.bin_strings, axs):
+            # Compute the log time and envelopes integrals
             log_envelope1, log_time1 = signal1.normalize().log_envelope()
             log_envelope2, log_time2 = signal2.normalize().log_envelope()
-            integral1 = np.array([trapezoid(log_envelope1[:i], log_time1[:i]) for i in np.arange(2, len(log_envelope1), 1)])
-            integral2 = np.array([trapezoid(log_envelope2[:i], log_time2[:i]) for i in np.arange(2, len(log_envelope2), 1)])
+            env_range1 = np.arange(2, len(log_envelope1), 1)
+            env_range2 = np.arange(2, len(log_envelope2), 1)
+            integral1 = np.array([trapezoid(log_envelope1[:i], log_time1[:i]) for i in env_range1])
+            integral2 = np.array([trapezoid(log_envelope2[:i], log_time2[:i]) for i in env_range2])
             time1 = log_time1[2:len(log_time1):1]
             time2 = log_time2[2:len(log_time2):1]
 
@@ -751,20 +742,19 @@ class SoundPack(object):
             integral1 /= max_value
             integral2 /= max_value
 
-            fig, ax = plt.subplots(figsize=(8, 6))
+            # plot the integral area curves
             ax.fill_between(time1, integral1, label=self.sounds[0].name, alpha=0.4)
             ax.fill_between(time2, -integral2, label=self.sounds[1].name, alpha=0.4)
             ax.fill_between(time2, integral1 - integral2, color='g', label='int diff', alpha=0.6)
-
             ax.set_xlabel('time (s)')
             ax.set_ylabel('mirror cumulative power (normalized)')
             ax.set_xscale('log')
-            ax.set_title(f_bin)
-            ax.legend(loc='upper left')
+            ax.set_title(bin_string)
+            ax.legend()
             ax.grid('on')
 
-        else:
-            print('invalid frequency bin')
+        plt.tight_layout()
+
 
 
 class Sound(object):
@@ -966,6 +956,11 @@ class Sound(object):
 
         plt.xscale('log')
         plt.yscale('log')
+        ax = plt.gca()
+        ax.set_xlim(0.05, self.signal.time()[-1]) 
+        combined_min = np.min([self.bins[key].envelope()[0][-1] for key in self.bins])
+        combined_max = np.max([np.max(self.bins[key].envelope()[0]) for key in self.bins])
+        ax.set_ylim(combined_min, combined_max * 1.1) 
         plt.legend(fontsize="x-small")  # using a named size
 
     def peak_damping(self):
@@ -1132,11 +1127,14 @@ class Signal(object):
         fft_max_end = np.max(fft[max_index - peak_distance:max_index])
 
         # Build the curve below the peaks but above the noise
-        exponents = np.linspace(np.log10(fft_max_start), np.log10(fft_max_end), max_index)
+        exp_start = np.log10(fft_max_start)
+        exp_end = np.log10(max(fft_max_end, 1e-16))
+        exponents = np.linspace(exp_start, exp_end, max_index)
         intersect = 10 ** exponents[peak_distance]
         diff_start = fft_max_start - intersect  # offset by a small distance so that the first max is not a peak
-        min_height = 10 ** np.linspace(np.log10(fft_max_start + diff_start), np.log10(fft_max_end), max_index)
-
+        offset_fft_max_start = fft_max_start + diff_start
+        exp_start = np.log10(max(offset_fft_max_start, 1e-16))
+        min_height = 10 ** np.linspace(exp_start, exp_end, max_index)
         first_peak_indexes, _ = sig.find_peaks(fft[:max_index], height=min_height, distance=peak_distance)
 
         number_of_peaks = len(first_peak_indexes)
@@ -1349,10 +1347,16 @@ class Signal(object):
                 increasing_onset_idxs.append(onset_idxs[i])
         onset_points = increasing_onset_points
         onset_idxs = increasing_onset_idxs
-        # Use 2 x fundamental as period
-        fundamental = self.fft_frequencies()[self.peaks()][0]
+        # try to use 2 x fundamental as period
+        try:
+            fundamental = self.fft_frequencies()[self.peaks()][0]
+        # This doesnt work for frequency bins
+        except ValueError:
+            # Fall back on mean frequency of guitar open strings
+            fundamental = np.mean([82.4, 110., 146.8, 196., 246.9, 329.6])
         period = 1/fundamental
         window = int(period * self.sr)*2
+        window = max(window, int(1/100 * self.sr))
         step = window-1
         envelop_points = onset_points.copy()
         envelop_idxs = onset_idxs.copy()
@@ -1699,7 +1703,7 @@ class Plot(object):
         plt.hist(self.parent.fft_bins(), utils.octave_histogram(self.parent.SP.general.octave_fraction.value),
                  alpha=0.7, **plot_kwargs)
         plt.xlabel('Fréquence (Hz)')
-        plt.ylabel('Amplitude (normalisée)')
+        plt.ylabel('Amplitude')
         plt.xscale('log')
         plt.yscale('log')
         plt.grid('on')
