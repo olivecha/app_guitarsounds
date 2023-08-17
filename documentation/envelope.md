@@ -6,6 +6,6 @@ Typiquement les fenêtres sont chevauchées de la moitié de leur longueur afin 
 
 L'enveloppe du signal permet d'en retirer la composante oscillatoire et de visualiser clairement son amplitude dans le temps. 
 
-Cependant, la largeur des fenêtres utilisée ne permet pas d'étudier clairement l'attaque qui se déroule à des échelles de temps plus petites. 
+Cependant, l'échelle du graphique utilisée ne permet pas d'étudier clairement l'attaque qui se déroule à des échelles de temps plus petites au début du signal. 
 
 L'enveloppe logarithmique est disponible pour étudier plus précisément l'amplitude du signal autour de l'attaque.
