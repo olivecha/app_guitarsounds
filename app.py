@@ -46,6 +46,7 @@ if 'cached_logo' not in st.session_state:
     image = Image.open('documentation/figures/logo.png')
     st.session_state['cached_logo'] = image
 
+
 # Functions modifying the session state 
 # Need to be defined in this file
 def update_file_load_status():
@@ -139,15 +140,22 @@ with sounds_io:
                     args=(st.session_state, sound_number))
         col3.write(' ')
         col4.write(' ')
-        col5.write(' ')
         name = col3.text_input(f'name_{sound_number}', 
                                'Nom du son', 
                                label_visibility='collapsed')
         names.append(name)
         col4.audio(sound.signal.signal, sample_rate=sound.signal.sr)
+        col5.write(' ')
+
+        if name != 'Nom du son':
+            download_name = f"{name}.wav"
+        else:
+            download_name = f"Son_{sound_number}.wav"
+
         col5.download_button(label=':arrow_down:',
                              data=sound.file_bytes,
-                             file_name=f'{name}.wav',)
+                             file_name=download_name,)
+
     # If more than one sound create soundpack item
     if len(st.session_state['sounds_cache']) > 1:
         st.session_state['soundpack'] = None

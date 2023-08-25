@@ -85,6 +85,47 @@ def sound_spectrogram(sound):
     ax.set_ylabel('Fréquence (Hz)')
 
 
+def spectrogram_diff(soundpack):
+	"""
+	Plot the difference in the spectrograms of two sounds
+	"""
+	# Access the sounds and compute log normalized spectrograms
+	son1 = soundpack.sounds[0]
+	son2 = soundpack.sounds[1]
+	fq1, t1, Sp1 = son1.lognormspect()
+	fq2, t2, Sp2 = son2.lognormspect()
+
+	# Compute and normalize difference
+	Sp_diff = Sp1 - Sp2
+	Sp_diff -= np.min(Sp_diff)
+	Sp_diff /= np.max(Sp_diff)
+	Sp_diff *= 2
+	Sp_diff -= 1
+	mean_val = np.mean(Sp_diff)
+	# Set the mean value in the center of the data range
+	# This makes the colormap symmetric
+	if mean_val > 0:
+		Sp_diff[Sp_diff > 0] -= mean_val
+		Sp_diff[Sp_diff > 0] /= (1 - mean_val)
+	else:
+		Sp_diff[Sp_diff < 0] -= mean_val
+		Sp_diff[Sp_diff < 0] /= (1 + mean_val)
+
+	# Plot the result
+	plt.pcolormesh(t1,
+				   fq1,
+				   Sp_diff,
+				   shading='gouraud',
+				   cmap='RdBu')
+
+	ax = plt.gca()
+	ax.set_ylim(1, 1.1*son1.SP.general.fft_range.value)
+	ax.set_xlim(0, son1.signal.time()[-1])
+	ax.set_xlabel('Temps (s)')
+	ax.set_ylabel('Fréquence (Hz)')
+	plt.colorbar(label='<- Son 2   :    Son 1 ->')
+	ax.set_title('Différence entre deux spectrogrammes')
+
     
 single_sound_analysis_names = {'signal':'Tracer la courbe du son',
                                'envelope':"Tracer l'enveloppe du signal",
@@ -144,6 +185,7 @@ dual_sound_analysis_names = {'msignal':'Tracer la courbe des sons',
                              'mffthist':"Tracer l'histogramme du spectre fréquentiel des sons (FFT)",
                              'fftmirror':'Comparer les spectres fréquentiels en configuration mirroir (FFT)',
                              'fftdiff':'Visualiser la différence entre les spectres fréquentiels (FFT)',
+							 'specdiff':'Visualiser la différence entre les spectrogrammes des sons',
                              'peakcomp':'Comparer les pics du spectre fréquentiel (FFT)',
                              'fbinplot':'Tracer les bandes de fréquence',
                              'binhist':'Histogramme des bandes de fréquences',
@@ -158,6 +200,7 @@ dual_sound_analysis_functions = {'msignal':plot_with_soundpack(Plot.signal),
                                  'peakcomp': SoundPack.compare_peaks,
                                  'fftmirror': SoundPack.fft_mirror,
                                  'fftdiff': SoundPack.fft_diff,
+								 'specdiff':spectrogram_diff,
                                  'binpower': SoundPack.integral_plot,
                                  'binhist': SoundPack.bin_power_hist,
                                  'fbinplot': SoundPack.freq_bin_plot,}
@@ -170,6 +213,7 @@ dual_sound_analysis_help = {'msignal':load_md(os.path.join('documentation', 'sig
                             'peakcomp':load_md(os.path.join('documentation', 'peakcomp.md')),
                             'fftmirror':load_md(os.path.join('documentation', 'fftmirror.md')),
                             'fftdiff':load_md(os.path.join('documentation', 'fftdiff.md')),
+							'specdiff':load_md(os.path.join('documentation','specdiff.md')),
                             'binpower':load_md(os.path.join('documentation', 'binpower.md')),
                             'binhist':load_md(os.path.join('documentation', 'histband.md')),
                             'fbinplot':load_md(os.path.join('documentation', 'fbinplot.md')),}
@@ -182,6 +226,7 @@ dual_sound_analysis_help_figures = {'msignal':Image.open(os.path.join('documenta
                                     'peakcomp':Image.open(os.path.join('documentation', 'figures', 'peakcomp.png')),
                                     'fftmirror':Image.open(os.path.join('documentation', 'figures', 'fftmirror.png')),
                                     'fftdiff':Image.open(os.path.join('documentation', 'figures', 'fftdiff.png')),
+									'specdiff':Image.open(os.path.join('documentation', 'figures', 'specdiff.png')),
                                     'binpower':Image.open(os.path.join('documentation', 'figures', 'binpower.png')),
                                     'binhist':Image.open(os.path.join('documentation', 'figures', 'dhistband.png')),
                                     'fbinplot':Image.open(os.path.join('documentation', 'figures', 'fbinplot.png')),}

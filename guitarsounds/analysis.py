@@ -10,6 +10,7 @@ import scipy.optimize
 import scipy.integrate
 import scipy.interpolate
 import scipy.io.wavfile 
+from scipy.signal import spectrogram
 from scipy.integrate import trapezoid
 from scipy import signal as sig
 from guitarsounds.parameters import sound_parameters
@@ -1014,6 +1015,27 @@ class Sound(object):
         ax.set_xlabel("Bandes de fréquence")
         ax.set_ylabel("Puissance totale (normalisée)")
         ax.set_title('Amplitude totale des bandes de fréquence')
+
+    def lognormspect(self):
+        """ 
+        Log normalized spectrogram of a sounds 
+        :param sound: guitarsound.Sound instance
+        :return : spectrogram_frequencies,
+        		  spectrogram_time,
+        		  spectrogram_amplitude
+        """
+        sig_arr = self.signal.signal
+        sr = self.signal.sr
+        
+        freqs, time, spec = spectrogram(sig_arr, sr, nperseg=1024)
+        spec /= np.max(spec)
+        thresh = 1e-4
+        low_values_idx = spec>thresh
+        log_min = np.min(np.log(spec[low_values_idx]))
+        spec[low_values_idx]= np.log(spec[low_values_idx])
+        spec[~low_values_idx] = log_min
+        spec -= np.min(spec)
+        return freqs, time, spec 
 
 
 class Signal(object):
