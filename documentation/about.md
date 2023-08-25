@@ -1,4 +1,4 @@
-L’école-atelier Lutherie-Guitare Bruand, 
+[L’école-atelier Lutherie-Guitare Bruand](https://bruand.com/),
 en partenariat avec l’Institut des métiers d’art du Cégep du Vieux-Montréal, 
 offre une formation collégiale dans le cadre du programme Techniques de métiers d’art, 
 option lutherie-guitare.  
