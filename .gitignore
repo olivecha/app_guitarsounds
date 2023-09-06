@@ -14,3 +14,8 @@ recording.ogg
 testing_sounds
 dev_archive
 scratch.ipynb
+*~
+**~
+**/*~
+.*
+!/.gitignore

@@ -301,7 +301,7 @@ class SoundPack(object):
                            'brillance':'Brillance'}
 
         # Create one plot per bin
-        fig, axs = plt.subplots(3, 2, figsize=(12, 12))
+        fig, axs = plt.subplots(3, 2, figsize=(8, 8))
         axs = axs.reshape(-1)
         for key, ax in zip([*list(self.SP.bins.__dict__.keys())[1:], 'brillance'], axs):
             plt.sca(ax)
@@ -354,7 +354,7 @@ class SoundPack(object):
                            'brillance':'Brillance'}
 
         # create a figure with 6 axes
-        fig, axs = plt.subplots(3, 2, figsize=(12, 12))
+        fig, axs = plt.subplots(3, 2, figsize=(8, 8))
 
         # A plot per frequency bin
         for key, ax in zip(self.bin_strings, axs.flatten()):
@@ -378,7 +378,7 @@ class SoundPack(object):
                 plt.legend()
                 lower = str(int(sound.bins[key].freq_range[0])) 
                 upper = str(int(sound.bins[key].freq_range[1])) 
-                plt.title(f'Envelope cummulative ({translated_bins[key]} {lower} - {upper})')
+                plt.title(f'Envelope cummulative {translated_bins[key]} \n ({lower} - {upper} Hz)')
             ax.set_xlabel('Temps (normalisé)')
             ax.set_ylabel('Envelope cummulative')
             plt.xscale('log')
@@ -476,7 +476,7 @@ class SoundPack(object):
             integrals.append(integral_list)
 
         # create the bar plotting vectors
-        fig, ax = plt.subplots(figsize=(6, 6))
+        ax = plt.gca()
 
         # make the bar plot
         n = len(self.sounds)
@@ -572,7 +572,7 @@ class SoundPack(object):
                     break
 
             # Plot the output
-            plt.figure(figsize=(10, 6))
+            #plt.figure(figsize=(10, 6))
             plt.yscale('symlog', linthresh=1e-2)
 
             # Sound 1
@@ -588,11 +588,12 @@ class SoundPack(object):
             plt.scatter(freq2[new_peaks2], -fft2[new_peaks2], color='b')
             if len(different_peaks2) > 0:
                 plt.scatter(freq2[different_peaks2[0]], -fft2[different_peaks2[0]], color='g')
-            plt.title('Analyse des pics du spectre fréquentiel pour les sons \n' + son1.name + ' and ' + son2.name)
+            plt.title('Analyse des pics du spectre fréquentiel')
             plt.legend()
             ax = plt.gca()
-            ax.set_yticks(np.linspace(-1, 1, 6),)
-            ax.set_yticklabels(labels=[np.around(num, 1) for num in np.linspace(-1, 1, 6)])
+            ticks = np.linspace(-1, 1, 6)
+            ax.set_yticks(ticks)
+            ax.set_yticklabels(labels=[np.around(num, 1) for num in ticks])
             ax.grid(True)
             ax.set_xlabel('Fréquence (Hz)')
             ax.set_ylabel('Amplitude (mirroir)')
@@ -616,7 +617,7 @@ class SoundPack(object):
             fft_freq_value = son1.signal.fft_frequencies()
             index = np.where(fft_freq_value > fft_range_value)[0][0]
 
-            plt.figure(figsize=(10, 6))
+            #plt.figure(figsize=(10, 6))
             plt.yscale('symlog', linthresh=1e-2)
             ax = plt.gca()
             ax.set_yticks(np.linspace(-1, 1, 6),)
@@ -627,7 +628,7 @@ class SoundPack(object):
             plt.plot(son2.signal.fft_frequencies()[:index], -son2.signal.fft()[:index], label=son2.name)
             plt.xlabel('Fréquence (Hz)')
             plt.ylabel('Amplitude mirroir (normalisée)')
-            plt.title('Spectre fréquentiel en configuration mirroir pour les sons \n' + son1.name + ' et ' + son2.name)
+            #plt.title('Spectre fréquentiel en configuration mirroir pour les sons \n' + son1.name + ' et ' + son2.name)
             plt.legend()
 
         else:
@@ -657,12 +658,12 @@ class SoundPack(object):
             hist_bins = utils.octave_histogram(fraction)
             bar_widths = np.array([hist_bins[i + 1] - hist_bins[i] for i in range(0, len(hist_bins) - 1)])
 
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
             plot1 = ax1.hist(son1.signal.fft_bins(), utils.octave_histogram(fraction), color='blue', alpha=0.6,
                              label=son1.name)
             plot2 = ax1.hist(son2.signal.fft_bins(), utils.octave_histogram(fraction), color='orange', alpha=0.6,
                              label=son2.name)
-            ax1.set_title('Histogramme du spectre fréquentiel pour les sons \n' + son1.name + ' and ' + son2.name)
+            ax1.set_title('Histogramme des spectres')
             ax1.set_xscale('log')
             ax1.set_xlabel('Fréquence (Hz)')
             ax1.set_ylabel('Amplitude (dB)')
@@ -677,25 +678,13 @@ class SoundPack(object):
             ax2.bar(x_values[n_index], diff[n_index], width=bar_widths[n_index], color='orange', alpha=0.6)
             # Positive difference corresponding to sound1
             ax2.bar(x_values[p_index], diff[p_index], width=bar_widths[p_index], color='blue', alpha=0.6)
-            ax2.set_title('Différence entre les spectres des sons \n' + son1.name + ' - ' + son2.name)
+            ax2.set_title('Différence entre les spectres')
             ax2.set_xscale('log')
             ax2.set_xlabel('Fréquence (Hz)')
             ax2.set_ylabel(f'<- {son2.name} : {son1.name} ->')
             ax2.grid('on')
+            plt.tight_layout()
 
-            if ticks == 'bins':
-                labels = [label for label in self.SP.bins.__dict__ if label != 'name']
-                labels.append('brillance')
-                x = [param.value for param in self.SP.bins.__dict__.values() if param != 'bins']
-                x.append(11250)
-                x_formatter = ticker.FixedFormatter(labels)
-                x_locator = ticker.FixedLocator(x)
-                ax1.xaxis.set_major_locator(x_locator)
-                ax1.xaxis.set_major_formatter(x_formatter)
-                ax1.tick_params(axis="x", labelrotation=90)
-                ax2.xaxis.set_major_locator(x_locator)
-                ax2.xaxis.set_major_formatter(x_formatter)
-                ax2.tick_params(axis="x", labelrotation=90)
 
         else:
             print('Unsupported for multiple sounds SoundPacks')
@@ -713,7 +702,7 @@ class SoundPack(object):
         and their difference as surfaces
         """
 
-        fig, axs = plt.subplots(3, 2, figsize=(16, 16))
+        fig, axs = plt.subplots(3, 2, figsize=(8, 8))
         axs = axs.reshape(-1)
 
         # get the bins frequency values
@@ -753,7 +742,6 @@ class SoundPack(object):
             ax.set_title(bin_string)
             ax.legend()
             ax.grid('on')
-
         plt.tight_layout()
 
 
