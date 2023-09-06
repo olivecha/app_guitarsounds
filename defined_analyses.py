@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import streamlit as st
 import scipy.io
 from scipy.signal import spectrogram
+import app_utils
 
 
 def plot_with_sound(fun):
@@ -57,6 +58,177 @@ def streamlit_listen_freq_bins(sound):
         coldownload.download_button(label=':arrow_down:',
                                     data=file_bytes,
                                     file_name=f'{sound.name}_{key}.wav',)
+
+def variable_signal_plot(sound, tmin, tmax, c):
+    """
+    Plot the signal curve with custom time range
+    """
+    sound.plot.signal()
+    ax = plt.gca()
+    if tmin < tmax:
+        ax.set_xlim(tmin, tmax)
+    else:
+        c.warning('Le temps min doit être plus petit que le temps max')
+    
+    
+def variable_signal_context(sound):
+    """
+    Menu for the variable time signal plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Temps min", 
+                                      min_value=0.0)
+    upper_bound = colmax.number_input(label="Temps max", 
+                                      max_value=sound.signal.time()[-1],
+                                      value=sound.signal.time()[-1])
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 key='Actualiser signal',
+                 on_click=app_utils.create_figure, 
+                 args=(variable_signal_plot, 
+                       'signal', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+
+    if 'signal.png' not in os.listdir('figure_cache'):
+        print("Generating first figure")
+        app_utils.create_figure(plot_with_sound(Plot.signal),
+                               'signal',
+                                sound)
+
+                                
+def variable_envelope_plot(sound, tmin, tmax, c):
+    """
+    Plot the envelope curve with custom time range
+    """
+    sound.plot.envelope()
+    ax = plt.gca()
+    if tmin < tmax:
+        ax.set_xlim(tmin, tmax)
+    else:
+        c.warning('Le temps min doit être plus petit que le temps max')
+    
+    
+def variable_envelope_context(sound):
+    """
+    Menu for the variable time envelope plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Temps min", 
+                                      key='envelope min',
+                                      min_value=0.0)
+    upper_bound = colmax.number_input(label="Temps max", 
+                                      key='envelope max',
+                                      max_value=sound.signal.time()[-1],
+                                      value=sound.signal.time()[-1])
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 key='Actialiser envelope',
+                 on_click=app_utils.create_figure, 
+                 args=(variable_envelope_plot, 
+                       'envelope', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+
+    if 'envelope.png' not in os.listdir('figure_cache'):
+        print("Generating first envelope figure")
+        app_utils.create_figure(plot_with_sound(Plot.envelope),
+                               'envelope',
+                                sound)
+
+
+def variable_logenv_plot(sound, tmin, tmax, c):
+    """
+    Plot the log envelope  curve with custom time range
+    """
+    sound.plot.log_envelope()
+    ax = plt.gca()
+    if tmin < tmax:
+        ax.set_xlim(tmin, tmax)
+    else:
+        c.warning('Le temps min doit être plus petit que le temps max')
+    
+    
+def variable_logenv_context(sound):
+    """
+    Menu for the variable time log envelope plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Temps min", 
+                                      key='logenv min',
+                                      min_value=0.0)
+    upper_bound = colmax.number_input(label="Temps max", 
+                                      key='logenv max',
+                                      max_value=sound.signal.time()[-1],
+                                      value=sound.signal.time()[-1])
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 key='Actualiser logenv',
+                 on_click=app_utils.create_figure, 
+                 args=(variable_logenv_plot, 
+                       'logenv', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+
+    if 'logenv.png' not in os.listdir('figure_cache'):
+        print("Generating first log envelope figure")
+        app_utils.create_figure(plot_with_sound(Plot.log_envelope),
+                               'logenv',
+                                sound)
+
+
+def variable_fft_plot(sound, fmin, fmax, c):
+    """
+    Plot the FFT  with custom frequency range
+    """
+    sound.plot.fft()
+    ax = plt.gca()
+    if fmin < fmax:
+        ax.set_xlim(fmin, fmax)
+    else:
+        c.warning('La fréquence min doit être plus petite que la fréquence max')
+    
+    
+def variable_fft_context(sound):
+    """
+    Menu for the variable time log envelope plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Fréquence min", 
+                                      min_value=0)
+    upper_bound = colmax.number_input(label="Fréquence max", 
+                                      max_value=3000,
+                                      value=2000)
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 on_click=app_utils.create_figure, 
+                 key='Actualiser fft',
+                 args=(variable_fft_plot, 
+                       'fft', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+
+    if 'fft.png' not in os.listdir('figure_cache'):
+        print("Generating first fft figure")
+        app_utils.create_figure(plot_with_sound(Plot.fft),
+                               'fft',
+                                sound)
 
 def sound_spectrogram(sound):
     """
@@ -123,7 +295,7 @@ def spectrogram_diff(soundpack):
 	ax.set_xlim(0, son1.signal.time()[-1])
 	ax.set_xlabel('Temps (s)')
 	ax.set_ylabel('Fréquence (Hz)')
-	plt.colorbar(label='<- Son 2   :    Son 1 ->')
+	plt.colorbar(label=f'<- {son1.name}    :    {son2.name} ->')
 	ax.set_title('Différence entre deux spectrogrammes')
 
     
@@ -139,10 +311,10 @@ single_sound_analysis_names = {'signal':'Tracer la courbe du son',
                                'plotband':"Tracer les bandes de fréquence",
                                'histband':"Histogramme des bandes de fréquence"}
 
-single_sound_analysis_functions = {'signal':plot_with_sound(Plot.signal),
-                                   'envelope':plot_with_sound(Plot.envelope),
-                                   'logenv':plot_with_sound(Plot.log_envelope),
-                                   'fft':plot_with_sound(Plot.fft),
+single_sound_analysis_functions = {'signal':variable_signal_context,
+                                   'envelope':variable_envelope_context,
+                                   'logenv':variable_logenv_context,
+                                   'fft':variable_fft_context,
                                    'ffthist':plot_with_sound(Plot.fft_hist),
                                    'peaks':plot_with_sound(Plot.peaks),
                                    'specgram':sound_spectrogram,
@@ -300,4 +472,6 @@ all_report_headers  = {'mfbinplot':'Amplitude des Bandes de fréquences selon le
                        'peaks':"Analyse des pics du spectre fréquentiel (FFT) du son",
                        'timedamp':"Amortissement temporel du son",
                        'plotband':"Graphique des bandes de fréquence du son",
+                       'specgram':"Spectrograme normalisé du son",
+                       'specdiff':"Différence normalisée entre les spectrogrammes de deux sons",
                        'histband':"Histogramme des bandes de fréquence"}

@@ -63,11 +63,19 @@ def set_state(menu, analysis, state):
     st.session_state[menu][analysis] = state 
 
 def generate_figure_and_set_state(analysis_call, key, sound):
-    if key != 'listenband':
+    """
+    Function to alter the session state depending on the analysis call
+    """
+    # Case for the listen frequency bins function
+    if key == 'listenband':
+        set_state('analysis_menu', key, 'listen')
+    # Case for interactive analyses
+    elif key in ['signal', 'envelope', 'logenv', 'fft']:
+        set_state('analysis_menu', key, 'call')
+    # Default
+    else:
         create_figure(analysis_call, key, sound) 
         set_state('analysis_menu', key, 'figure')
-    else:
-        set_state('analysis_menu', key, 'listen')
 
 # Title and logo
 title = "Analyse comparative de sons de guitare"
@@ -279,6 +287,15 @@ with analysis:
                     st.session_state['cached_images'][analysis] = image
                 image = st.session_state['cached_images'][analysis]
                 st.empty().image(image)
+
+            elif st.session_state['analysis_menu'][analysis] == 'call':
+                analysis_functions[analysis](sounds_list[0])
+                filename = '.'.join([analysis, 'png'])
+                image = Image.open(os.path.join('figure_cache', filename))
+                st.session_state['cached_images'][analysis] = image
+                image = st.session_state['cached_images'][analysis]
+                st.empty().image(image)
+            
             elif st.session_state['analysis_menu'][analysis] == 'listen':
                 analysis_functions[analysis](sounds_list[0])
 

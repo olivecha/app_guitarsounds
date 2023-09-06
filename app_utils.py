@@ -53,10 +53,11 @@ def remove_cached_sound(session_state, sound_key):
 
 def create_figure(analysis, key, *args):
     """ Run a plotting fonction but include calls to streamlit """
-    fig, ax   = plt.subplots(figsize=(10, 6))
+    fig, ax   = plt.subplots(figsize=(7, 4.5))
     plt.sca(ax)
     analysis(*args)
-    plt.gcf().savefig(os.path.join('figure_cache',key))
+    fig = plt.gcf()
+    fig.savefig(os.path.join('figure_cache',key), dpi=200)
 
 def generate_report(report_analyses):
     """Génère un rapport d'analyse en format word"""
