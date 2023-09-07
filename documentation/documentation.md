@@ -2,7 +2,7 @@
 
 L'application `guitarsounds` a été conçue pour analyser des sons de guitare comprenant une seule note. Les analyses peuvent se faire sur un seul son ou de façon comparative. Les sons à être analyser doivent d'abord être chargés dans le logiciel. Ensuite, diverses analyses produisant des graphiques peuvent être faites sur les sons. Enfin, les analyses pertinentes à l'utilisateur peuvent être sélectionnées afin de générer automatiquement un rapport au format Word. 
 
-# Téléversement et enregistrement des sons
+## Téléversement et enregistrement des sons
 
 Dans l'onglet "Ajouter des sons", l'utilisateur peut soit téléverser des sons dans un format arbitraire, soit les enregistrer à même son navigateur web. 
 
@@ -17,30 +17,16 @@ Les sons sont aussi rééchantillonés avec une fréquence de coupure de 22050 H
 
 Afin de s'assurer que le processus de condionnement s'est bien déroulé, l'utilisateur peut écouter les sons après les avoirs enregistrés ou téléchargés, il est important de porter attention aux bruits ambiants qui pourraient s'être retrouvés dans l'enregistrement, ou à un double impact lorsque la corde a été pincée.
 
-# Analyse des sons 
+## Analyse des sons 
 
-Cette section décrit les différentes analyses qui peuvent être faites sur un son unique, un duo de sons ou un nombre arbitraire de sons. 
-Certaines analyses s'appuient sur des concepts plus avancés de l'analyse numérique de signaux qui sont décrits dans la section théorie.
+Une fois les sons téléchargés, l'utilisateur peut les analyser dans l'onglets "Analyser À Comparer des sons". 
+Les analyses disponibles dépendent du nombre de sons téléchargés. 
+Certaines son disponibles seulement pour un son unique, d'autres seulement deux sons que l'on veut comparer et finalement certaines des analyses sont disponibles pour un nombre arbitraire de sons. 
 
-## Théorie de l'analyse des signaux
+**Les différentes analyses sont documentées, leur documentation est accessible avec l'icone :question:.**
 
-### Décomposition en bandes de fréquences
+## Documentation additionnelle
 
-### Échelle logarithmique
-
-### Transformée de Fourier
-
-### Échelle temporelle logarithmique
-
-## Analyse d'un seul son
-
-## Analyse comparative de deux sons
-
-## Analyse comparative de plusieurs sons 
-
-# Génération d'un rapport 
-
-# Documentation additionnelle
-
-Pour aller plus loin, l'utilisateur peut se référer à la documentation du [module d'analyse](https://olivecha.github.io/guitarsounds/guitarsounds.html), 
-et à l'[article scientifique](https://joss.theoj.org/papers/10.21105/joss.04878) publié décrivant le fonctionnement de l'outil d'analyse de sons.
+Pour aller plus loin, l'utilisateur peut se référer à la documentation du [module d'analyse](https://olivecha.github.io/guitarsounds/guitarsounds.html).
+Celui-ci contient toutes les fonctionnalitées d'analyse utilisées dans l'application.
+Un [article scientifique](https://joss.theoj.org/papers/10.21105/joss.04878) décrivant le fonctionnement de l'outil d'analyse de sons a aussi été publié.

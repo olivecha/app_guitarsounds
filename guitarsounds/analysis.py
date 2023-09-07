@@ -928,6 +928,8 @@ class Sound(object):
 
         For more information on the logarithmic envelope, see :
             `help(Signal.log_envelope)`
+    print("fmin:", fmin)
+    print("fmax:", fmax)
         """
         translated_bins = {'bass':'Basses',
                            'mid':'Mids',
@@ -1329,7 +1331,10 @@ class Signal(object):
         sig_data = np.abs(self.signal)
         onset_data = sig_data.copy()[:np.argmax(sig_data)]
         guess_tresh = np.mean(sig_data[np.nonzero(self.time() > 0.05)[0][0]])*(10*np.max(sig_data))
-        idx_onset = np.nonzero(sig_data > guess_tresh)[0][0]
+        try:
+            idx_onset = np.nonzero(sig_data > guess_tresh)[0][0]
+        except IndexError:
+            idx_onset = 0
         
         # Compute the envelop from onset to max value
         start_idx = idx_onset
@@ -1503,15 +1508,15 @@ class Signal(object):
         if onset > delay_samples:  # To make sure the index is positive
             new_signal = self.signal[onset - delay_samples:]
             new_signal[:delay_samples // 2] = new_signal[:delay_samples // 2] * np.linspace(0, 1, delay_samples // 2) 
-            trimmed_signal = Signal(new_signal, self.sr, self.SP)
-            trimmed_signal.onset = trimmed_signal.find_onset(verbose=verbose)
-            return trimmed_signal
 
         else:
-            if verbose:
-                print('Signal is too short to be trimmed before onset.')
-                print('')
-            return self
+            fill_samples = delay_samples - onset
+            new_signal = np.hstack([np.zeros(fill_samples), self.signal])
+            new_signal[:delay_samples // 2] = new_signal[:delay_samples // 2] * np.linspace(0, 1, delay_samples // 2) 
+
+        trimmed_signal = Signal(new_signal, self.sr, self.SP)
+        trimmed_signal.onset = trimmed_signal.find_onset(verbose=verbose)
+        return trimmed_signal
 
     def trim_time(self, time_length):
         """
@@ -1666,6 +1671,7 @@ class Plot(object):
         plt.xlabel("Temps (s)")
         plt.ylabel("Amplitude (Entre 0 et 1)")
         plt.xscale('log')
+        plt.gca().set_xlim(0.07, log_envelope_time[max_index-1])
         plt.grid('on')
 
     def fft(self, **kwargs):
