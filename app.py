@@ -273,9 +273,22 @@ with analysis:
                            args=('analysis_menu', analysis, 'help'))
 
             if analysis != 'listenband':
-                check = colcheck.checkbox(label=analysis,
-                                          label_visibility='collapsed')
-                st.session_state['report_analyses'][analysis] = check
+                show_check = True
+                check_value = False
+                if st.session_state['analysis_menu'][analysis] in ('figure', 'call'):
+                    check_value = True
+                else:
+                    show_check = False
+
+                if show_check:
+                    check = colcheck.checkbox(label=analysis,
+                                              value=check_value, 
+                                              label_visibility='collapsed')
+                    st.session_state['report_analyses'][analysis] = check
+                else:
+                    colcheck.write('')
+                    st.session_state['report_analyses'][analysis] = False
+                    
             else:
                 colcheck.write('')
                 st.session_state['report_analyses'][analysis] = False
