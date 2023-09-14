@@ -58,8 +58,8 @@ def remove_log_ticks(fig):
     for ax in fig.axes:
         labels = ax.get_xticklabels()
         xmin, xmax = ax.get_xlim()
-        print(xmin)
         new_labels = []
+        textual_label_case = False
         for l in labels:
             try:
                 _, number, exp = l.get_text().split('{')
@@ -69,15 +69,22 @@ def remove_log_ticks(fig):
                 new_labels.append(value)
             except ValueError:
                 nstr = l.get_text()
+                # Fancy fancy matplotlib
                 nstr = nstr.replace('−', '-')
                 if '.' in nstr:
                     new_labels.append(float(nstr))
                 else:
-                    new_labels.append(int(nstr))
-        new_labels = [l for l in new_labels if l > xmin]
-        new_labels = [l for l in new_labels if l < xmax]
-        ax.set_xticks(new_labels)
-        ax.set_xticklabels(new_labels)
+                    try:
+                        new_labels.append(int(nstr))
+                    except ValueError:
+                        textual_label_case = True
+        if textual_label_case:
+            ax.set_xticklabels(labels)
+        else:
+            new_labels = [l for l in new_labels if l > xmin]
+            new_labels = [l for l in new_labels if l < xmax]
+            ax.set_xticks(new_labels)
+            ax.set_xticklabels(new_labels)
 
 def create_figure(analysis, key, *args):
     """ Run a plotting fonction but include calls to streamlit """
@@ -86,10 +93,7 @@ def create_figure(analysis, key, *args):
     analysis(*args)
     fig = plt.gcf()
     #TODO: make less sketch
-    try:
-        remove_log_ticks(fig)
-    except:
-        pass
+    remove_log_ticks(fig)
     fig.savefig(os.path.join('figure_cache',key), dpi=200)
 
 def generate_report(report_analyses):
