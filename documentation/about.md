@@ -19,7 +19,8 @@ Elle a été principalement développée pour les sons de cordes pincées mais p
 Elle accepte des enregistrements externes de plusieurs formats et permet aussi la capture spontanée de sons divers.  
 Ses capacités ont été élaborées afin de caractériser le son d’un instrument de façon globale, 
 rapide et intuitive tel un outil de travail pour les luthiers ou comme outil pédagogique pour visualiser les sons dans le cadre des cours d’acoustique.  
-L’application permet de faire beaucoup de types d’analyse et d’extraire aisément la signature d’un timbre.   
+L’application permet de faire beaucoup de types d’analyse et d’extraire aisément la signature d’un timbre, en ayant des connaissances scientifiques minimales.
  
 Nous vous souhaitons une navigation facile, des analyses utiles, intéressantes voir fascinantes et qui sait, d’y trouver votre timbre!
+
  
