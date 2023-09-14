@@ -1133,6 +1133,9 @@ class Signal(object):
 
         # Find an approximation of the distance between peaks, this only works for harmonic signals
         peak_distance = np.argmax(fft) // 2
+        max_fund_idx = np.where(fft_freq > 50)[0][0]
+        if peak_distance < max_fund_idx:
+            peak_distance = max_fund_idx
 
         # Maximum of the signal in a small region on both ends
         fft_max_start = np.max(fft[:peak_distance])
@@ -1671,7 +1674,10 @@ class Plot(object):
         plt.xlabel("Temps (s)")
         plt.ylabel("Amplitude (Entre 0 et 1)")
         plt.xscale('log')
-        plt.gca().set_xlim(0.07, log_envelope_time[max_index-1])
+        # Try being smart with the x limits
+        idx_min_time = np.where((log_envelope/np.max(log_envelope)) > 0.05)[0][0]
+        min_time = log_envelope_time[idx_min_time] / 2
+        plt.gca().set_xlim(min_time, log_envelope_time[max_index-1])
         plt.grid('on')
 
     def fft(self, **kwargs):
