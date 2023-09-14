@@ -85,7 +85,11 @@ def create_figure(analysis, key, *args):
     plt.sca(ax)
     analysis(*args)
     fig = plt.gcf()
-    remove_log_ticks(fig)
+    #TODO: make less sketch
+    try:
+        remove_log_ticks(fig)
+    except:
+        pass
     fig.savefig(os.path.join('figure_cache',key), dpi=200)
 
 def generate_report(report_analyses):
