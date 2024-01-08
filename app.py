@@ -74,14 +74,13 @@ with sounds_io:
     with expander1:
         audio = audiorecorder("Cliquez pour débuter l'enregistrement", "Stop")
 
-    if (st.session_state['reference_recording'] != audio.tobytes()) and (len(audio) > 0):
-        with NamedTemporaryFile() as f:
-            f.write(audio.tobytes())
-            sigarray, sr = librosa.load(f.name, sr=None)
+    if (st.session_state['reference_recording'] != audio.raw_data) and (len(audio) > 0):
+        f = audio.export(format="wav")
+        sigarray, sr = librosa.load(f.name, sr=None)
         new_sound = Sound((sigarray, sr))
         sound_number = get_cached_next_number(st.session_state)
         st.session_state['sounds_cache'][sound_number] = new_sound
-        st.session_state['reference_recording'] = audio.tobytes()
+        st.session_state['reference_recording'] = audio.raw_data
     
     expander = col2.expander("Téléverser un son")
     uploaded_file = expander.file_uploader("Choose a file", 
@@ -120,6 +119,7 @@ with sounds_io:
         col4.audio(sound.signal.signal, sample_rate=sound.signal.sr)
         col5.download_button(label=':arrow_down:',
                              data=sound.file_bytes,
+                             key=f"download_{sound_number}",
                              file_name=f'{name}.wav',)
 
     if len(st.session_state['sounds_cache']) > 1:
