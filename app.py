@@ -104,7 +104,6 @@ with sounds_io:
     with expander1:
         now = time.time()
         audio = audiorecorder("Cliquez pour débuter l'enregistrement", "Stop")
-        os.write(1, audio)
         recording_time  = time.time() - now
 
     if (st.session_state['reference_recording'] != audio.raw_data) and (len(audio) > 0):
