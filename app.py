@@ -6,6 +6,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import soundfile as sf
+import librosa
 from pydub import AudioSegment
 from audiorecorder import audiorecorder
 from guitarsounds.utils import load_wav
@@ -106,15 +107,12 @@ with sounds_io:
         recording_time  = time.time() - now
 
     if (st.session_state['reference_recording'] != audio.raw_data) and (len(audio) > 0):
-        if 'recording.ogg' in os.listdir():
-                os.remove('recording.ogg')
-        with open('recording.ogg', 'wb') as recordfile:
-            recordfile.write(audio.raw_data)
-        sigarray, sr = sf.read('recording.ogg')
-        new_sound = Sound((sigarray[:, 0], sr))
+        f = audio.export(format="wav")
+        sigarray, sr = librosa.load(f.name, sr=None)
+        new_sound = Sound((sigarray, sr))
         sound_number = get_cached_next_number(st.session_state)
         st.session_state['sounds_cache'][sound_number] = new_sound
-        st.session_state['reference_recording'] = audio.tobytes()
+        st.session_state['reference_recording'] = audio.raw_data
         st.warning("Les sons enregistrés ne sont pas sauvegardés d'une session à l'autre \n vous pouvez les télécharger si vous voulez les conserver", icon="⚠️")
     
     # File uploading
