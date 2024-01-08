@@ -105,27 +105,17 @@ with sounds_io:
         audio = audiorecorder("Cliquez pour débuter l'enregistrement", "Stop")
         recording_time  = time.time() - now
 
-<<<<<<< HEAD
     if (st.session_state['reference_recording'] != audio.raw_data) and (len(audio) > 0):
-        f = audio.export(format="wav")
-        sigarray, sr = librosa.load(f.name, sr=None)
-        new_sound = Sound((sigarray, sr))
-        sound_number = get_cached_next_number(st.session_state)
-        st.session_state['sounds_cache'][sound_number] = new_sound
-        st.session_state['reference_recording'] = audio.raw_data
-=======
-    if (st.session_state['reference_recording'] != audio.tobytes()) and (len(audio) > 0):
         if 'recording.ogg' in os.listdir():
                 os.remove('recording.ogg')
         with open('recording.ogg', 'wb') as recordfile:
-            recordfile.write(audio.tobytes())
+            recordfile.write(audio.raw_data)
         sigarray, sr = sf.read('recording.ogg')
         new_sound = Sound((sigarray[:, 0], sr))
         sound_number = get_cached_next_number(st.session_state)
         st.session_state['sounds_cache'][sound_number] = new_sound
         st.session_state['reference_recording'] = audio.tobytes()
         st.warning("Les sons enregistrés ne sont pas sauvegardés d'une session à l'autre \n vous pouvez les télécharger si vous voulez les conserver", icon="⚠️")
->>>>>>> ab2f0370c13c6b2fecd23641aa96c90c0ad26450
     
     # File uploading
     expander = col2.expander("Téléverser un son")
@@ -172,12 +162,8 @@ with sounds_io:
 
         col5.download_button(label=':arrow_down:',
                              data=sound.file_bytes,
-<<<<<<< HEAD
                              key=f"download_{sound_number}",
                              file_name=f'{name}.wav',)
-=======
-                             file_name=download_name,)
->>>>>>> ab2f0370c13c6b2fecd23641aa96c90c0ad26450
 
     # If more than one sound create soundpack item
     if len(st.session_state['sounds_cache']) > 1:
