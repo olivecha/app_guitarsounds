@@ -10,6 +10,7 @@ import scipy.optimize
 import scipy.integrate
 import scipy.interpolate
 import scipy.io.wavfile 
+from scipy.signal import spectrogram
 from scipy.integrate import trapezoid
 from scipy import signal as sig
 from guitarsounds.parameters import sound_parameters
@@ -117,7 +118,7 @@ class SoundPack(object):
             # If the sounds are not conditionned condition them
             for s in self.sounds:
                 if ~hasattr(s, 'signal'):
-                    s.condition()
+                    s.condition(auto_trim=True)
 
         if equalize_time:
             self.equalize_time()
@@ -150,7 +151,10 @@ class SoundPack(object):
         # Create Sound instances from files
         self.sounds = []
         for file, name, fundamental in zip(sound_files, names, fundamentals):
-            self.sounds.append(Sound(file, name=name, fundamental=fundamental,
+            self.sounds.append(Sound(file, 
+                                     name=name, 
+                                     fundamental=fundamental,
+                                     auto_trim=True,
                                      SoundParams=self.SP))
 
     def equalize_time(self):
@@ -297,7 +301,7 @@ class SoundPack(object):
                            'brillance':'Brillance'}
 
         # Create one plot per bin
-        fig, axs = plt.subplots(3, 2, figsize=(12, 12))
+        fig, axs = plt.subplots(3, 2, figsize=(8, 8))
         axs = axs.reshape(-1)
         for key, ax in zip([*list(self.SP.bins.__dict__.keys())[1:], 'brillance'], axs):
             plt.sca(ax)
@@ -350,20 +354,36 @@ class SoundPack(object):
                            'brillance':'Brillance'}
 
         # create a figure with 6 axes
-        fig, axs = plt.subplots(3, 2, figsize=(12, 12))
-        axs = axs.reshape(-1)
+        fig, axs = plt.subplots(3, 2, figsize=(8, 8))
 
-        for key, ax in zip(self.bin_strings, axs):
+        # A plot per frequency bin
+        for key, ax in zip(self.bin_strings, axs.flatten()):
             plt.sca(ax)
-            norm_factors = np.array([son.bins[key].normalize().norm_factor for son in self.sounds])
+            # For each sound in the SoundPack
+            current_bin_integrals = []
+            time_vectors = []
             for sound in self.sounds:
-                sound.bins[key].plot.integral(label=sound.name)
-            plt.legend()
-            sound = self.sounds[-1]
-            title = ' ' + translated_bins[key] + ' : ' + str(int(sound.bins[key].freq_range[0])) + ' - ' + str(
-                int(sound.bins[key].freq_range[1])) + ' Hz, '
-            plt.title(title)
-            plt.title(title)
+                # Get the envelope and time values of the bin of the current sound
+                envelope, envelope_time = sound.bins[key].normalize().envelope()
+                time_vectors.append(envelope_time)
+                # compute the cumulative integral
+                integral = [trapezoid(envelope[:i], envelope_time[:i]) for i in np.arange(2, len(envelope), 1)]
+                current_bin_integrals.append(integral)
+            max_value_for_bin = np.max([np.max(integ) for integ in current_bin_integrals])
+            current_bin_integrals = [integ / max_value_for_bin for integ in current_bin_integrals]
+            time_vectors = [time_vec/np.max(time_vec) for time_vec in time_vectors]
+            # Plot the normalized curves
+            for time_vec, integral, sound in zip(time_vectors, current_bin_integrals, self.sounds):
+                plt.plot(time_vec[2:], integral, label=sound.name)
+                plt.legend()
+                lower = str(int(sound.bins[key].freq_range[0])) 
+                upper = str(int(sound.bins[key].freq_range[1])) 
+                plt.title(f'Envelope cummulative {translated_bins[key]} \n ({lower} - {upper} Hz)')
+            ax.set_xlabel('Temps (normalisé)')
+            ax.set_ylabel('Envelope cummulative')
+            plt.xscale('log')
+            plt.grid('on')
+
         plt.tight_layout()
 
             
@@ -427,23 +447,36 @@ class SoundPack(object):
                            'brillance':'Brillance'}
         # Compute the bin powers
         bin_strings = self.bin_strings
-        integrals = []
+        sound_integrals = []
 
         # for every sound in the SoundPack
         for sound in self.sounds:
-            integral = []
+            bin_integrals = {}
             # for every frequency bin in the sound
             for f_bin in bin_strings:
                 log_envelope, log_time = sound.bins[f_bin].normalize().log_envelope()
-                integral.append(trapezoid(log_envelope, log_time))
+                bin_integrals[f_bin] = trapezoid(log_envelope, log_time)
 
             # a list of dict for every sound
-            integral = np.array(integral)
-            integral /= np.max(integral)
-            integrals.append(integral)
+            sound_integrals.append(bin_integrals)
+
+        # Normalize globally
+        global_max = 0
+        for integral_dict in sound_integrals :
+            for key in integral_dict:
+                if np.max(integral_dict[key]) > global_max:
+                    global_max = np.max(integral_dict[key])
+
+        # Restructure into list
+        integrals = []
+        for integral_dict in sound_integrals:
+            integral_list = []
+            for key in integral_dict:
+                integral_list.append(integral_dict[key] / global_max)
+            integrals.append(integral_list)
 
         # create the bar plotting vectors
-        fig, ax = plt.subplots(figsize=(6, 6))
+        ax = plt.gca()
 
         # make the bar plot
         n = len(self.sounds)
@@ -539,8 +572,8 @@ class SoundPack(object):
                     break
 
             # Plot the output
-            plt.figure(figsize=(10, 6))
-            plt.yscale('symlog', linthresh=10e-1)
+            #plt.figure(figsize=(10, 6))
+            plt.yscale('symlog', linthresh=1e-2)
 
             # Sound 1
             plt.plot(freq1, fft1, color='#919191', label=son1.name)
@@ -555,11 +588,12 @@ class SoundPack(object):
             plt.scatter(freq2[new_peaks2], -fft2[new_peaks2], color='b')
             if len(different_peaks2) > 0:
                 plt.scatter(freq2[different_peaks2[0]], -fft2[different_peaks2[0]], color='g')
-            plt.title('Analyse des pics du spectre fréquentiel pour les sons \n' + son1.name + ' and ' + son2.name)
+            plt.title('Analyse des pics du spectre fréquentiel')
             plt.legend()
             ax = plt.gca()
-            ax.set_yticks(np.linspace(-1, 1, 6),)
-            ax.set_yticklabels(labels=[np.around(num, 1) for num in np.linspace(-1, 1, 6)])
+            ticks = np.linspace(-1, 1, 6)
+            ax.set_yticks(ticks)
+            ax.set_yticklabels(labels=[np.around(num, 1) for num in ticks])
             ax.grid(True)
             ax.set_xlabel('Fréquence (Hz)')
             ax.set_ylabel('Amplitude (mirroir)')
@@ -583,8 +617,8 @@ class SoundPack(object):
             fft_freq_value = son1.signal.fft_frequencies()
             index = np.where(fft_freq_value > fft_range_value)[0][0]
 
-            plt.figure(figsize=(10, 6))
-            plt.yscale('symlog')
+            #plt.figure(figsize=(10, 6))
+            plt.yscale('symlog', linthresh=1e-2)
             ax = plt.gca()
             ax.set_yticks(np.linspace(-1, 1, 6),)
             ax.set_yticklabels(labels=[np.around(num, 1) for num in np.linspace(-1, 1, 6)])
@@ -594,7 +628,7 @@ class SoundPack(object):
             plt.plot(son2.signal.fft_frequencies()[:index], -son2.signal.fft()[:index], label=son2.name)
             plt.xlabel('Fréquence (Hz)')
             plt.ylabel('Amplitude mirroir (normalisée)')
-            plt.title('Spectre fréquentiel en configuration mirroir pour les sons \n' + son1.name + ' et ' + son2.name)
+            #plt.title('Spectre fréquentiel en configuration mirroir pour les sons \n' + son1.name + ' et ' + son2.name)
             plt.legend()
 
         else:
@@ -624,12 +658,12 @@ class SoundPack(object):
             hist_bins = utils.octave_histogram(fraction)
             bar_widths = np.array([hist_bins[i + 1] - hist_bins[i] for i in range(0, len(hist_bins) - 1)])
 
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
             plot1 = ax1.hist(son1.signal.fft_bins(), utils.octave_histogram(fraction), color='blue', alpha=0.6,
                              label=son1.name)
             plot2 = ax1.hist(son2.signal.fft_bins(), utils.octave_histogram(fraction), color='orange', alpha=0.6,
                              label=son2.name)
-            ax1.set_title('Histogramme du spectre fréquentiel pour les sons \n' + son1.name + ' and ' + son2.name)
+            ax1.set_title('Histogramme des spectres')
             ax1.set_xscale('log')
             ax1.set_xlabel('Fréquence (Hz)')
             ax1.set_ylabel('Amplitude (dB)')
@@ -644,96 +678,46 @@ class SoundPack(object):
             ax2.bar(x_values[n_index], diff[n_index], width=bar_widths[n_index], color='orange', alpha=0.6)
             # Positive difference corresponding to sound1
             ax2.bar(x_values[p_index], diff[p_index], width=bar_widths[p_index], color='blue', alpha=0.6)
-            ax2.set_title('Différence entre les spectres des sons \n' + son1.name + ' - ' + son2.name)
+            ax2.set_title('Différence entre les spectres')
             ax2.set_xscale('log')
             ax2.set_xlabel('Fréquence (Hz)')
             ax2.set_ylabel(f'<- {son2.name} : {son1.name} ->')
             ax2.grid('on')
+            plt.tight_layout()
 
-            if ticks == 'bins':
-                labels = [label for label in self.SP.bins.__dict__ if label != 'name']
-                labels.append('brillance')
-                x = [param.value for param in self.SP.bins.__dict__.values() if param != 'bins']
-                x.append(11250)
-                x_formatter = ticker.FixedFormatter(labels)
-                x_locator = ticker.FixedLocator(x)
-                ax1.xaxis.set_major_locator(x_locator)
-                ax1.xaxis.set_major_formatter(x_formatter)
-                ax1.tick_params(axis="x", labelrotation=90)
-                ax2.xaxis.set_major_locator(x_locator)
-                ax2.xaxis.set_major_formatter(x_formatter)
-                ax2.tick_params(axis="x", labelrotation=90)
 
         else:
             print('Unsupported for multiple sounds SoundPacks')
 
     def integral_compare(self, f_bin='all'):
         """
-          Cumulative bin envelope integral comparison for two signals
+        Cumulative bin envelope integral comparison for two signals
 
-          :param f_bin: frequency bins to compare, Supported arguments are :
-          'all', 'bass', 'mid', 'highmid', 'uppermid', 'presence', 'brillance'
-          :return: None
+        :param f_bin: frequency bins to compare, Supported arguments are :
+        'all', 'bass', 'mid', 'highmid', 'uppermid', 'presence', 'brillance'
+        :return: None
 
-          __ Dual SoundPack Method __
-          Plots the cumulative integral plot of specified frequency bins
-          and their difference as surfaces
-          """
+        __ Dual SoundPack Method __
+        Plots the cumulative integral plot of specified frequency bins
+        and their difference as surfaces
+        """
 
-        # Case when plotting all the frequency bins
-        if f_bin == 'all':
-            fig, axs = plt.subplots(3, 2, figsize=(16, 16))
-            axs = axs.reshape(-1)
+        fig, axs = plt.subplots(3, 2, figsize=(8, 8))
+        axs = axs.reshape(-1)
 
-            # get the bins frequency values
-            self.bin_strings = self.sounds[0].bins.keys()
-            bins1 = self.sounds[0].bins.values()
-            bins2 = self.sounds[1].bins.values()
+        # get the bins frequency values
+        self.bin_strings = self.sounds[0].bins.keys()
+        bins1 = self.sounds[0].bins.values()
+        bins2 = self.sounds[1].bins.values()
 
-            for signal1, signal2, bin_string, ax in zip(bins1, bins2, self.bin_strings, axs):
-                # Compute the log time and envelopes integrals
-                log_envelope1, log_time1 = signal1.normalize().log_envelope()
-                log_envelope2, log_time2 = signal2.normalize().log_envelope()
-                env_range1 = np.arange(2, len(log_envelope1), 1)
-                env_range2 = np.arange(2, len(log_envelope2), 1)
-                integral1 = np.array([trapezoid(log_envelope1[:i], log_time1[:i]) for i in env_range1])
-                integral2 = np.array([trapezoid(log_envelope2[:i], log_time2[:i]) for i in env_range2])
-                time1 = log_time1[2:len(log_time1):1]
-                time2 = log_time2[2:len(log_time2):1]
-
-                # resize arrays to match shape
-                common_len = min(len(time1), len(time2))
-                time1 = time1[:common_len]
-                time2 = time2[:common_len]
-                integral1 = integral1[:common_len]
-                integral2 = integral2[:common_len]
-                # Normalize
-                max_value = np.max(np.hstack([integral1, integral2]))
-                integral1 /= max_value
-                integral2 /= max_value
-
-                # plot the integral area curves
-                ax.fill_between(time1, integral1, label=self.sounds[0].name, alpha=0.4)
-                ax.fill_between(time2, -integral2, label=self.sounds[1].name, alpha=0.4)
-                ax.fill_between(time2, integral1 - integral2, color='g', label='int diff', alpha=0.6)
-                ax.set_xlabel('time (s)')
-                ax.set_ylabel('mirror cumulative power (normalized)')
-                ax.set_xscale('log')
-                ax.set_title(bin_string)
-                ax.legend()
-                ax.grid('on')
-
-            plt.tight_layout()
-
-        elif f_bin in self.bin_strings:
-
-            # Compute the log envelopes and areau curves
-            signal1 = self.sounds[0].bins[f_bin]
-            signal2 = self.sounds[1].bins[f_bin]
+        for signal1, signal2, bin_string, ax in zip(bins1, bins2, self.bin_strings, axs):
+            # Compute the log time and envelopes integrals
             log_envelope1, log_time1 = signal1.normalize().log_envelope()
             log_envelope2, log_time2 = signal2.normalize().log_envelope()
-            integral1 = np.array([trapezoid(log_envelope1[:i], log_time1[:i]) for i in np.arange(2, len(log_envelope1), 1)])
-            integral2 = np.array([trapezoid(log_envelope2[:i], log_time2[:i]) for i in np.arange(2, len(log_envelope2), 1)])
+            env_range1 = np.arange(2, len(log_envelope1), 1)
+            env_range2 = np.arange(2, len(log_envelope2), 1)
+            integral1 = np.array([trapezoid(log_envelope1[:i], log_time1[:i]) for i in env_range1])
+            integral2 = np.array([trapezoid(log_envelope2[:i], log_time2[:i]) for i in env_range2])
             time1 = log_time1[2:len(log_time1):1]
             time2 = log_time2[2:len(log_time2):1]
 
@@ -748,20 +732,18 @@ class SoundPack(object):
             integral1 /= max_value
             integral2 /= max_value
 
-            fig, ax = plt.subplots(figsize=(8, 6))
+            # plot the integral area curves
             ax.fill_between(time1, integral1, label=self.sounds[0].name, alpha=0.4)
             ax.fill_between(time2, -integral2, label=self.sounds[1].name, alpha=0.4)
             ax.fill_between(time2, integral1 - integral2, color='g', label='int diff', alpha=0.6)
-
             ax.set_xlabel('time (s)')
             ax.set_ylabel('mirror cumulative power (normalized)')
             ax.set_xscale('log')
-            ax.set_title(f_bin)
-            ax.legend(loc='upper left')
+            ax.set_title(bin_string)
+            ax.legend()
             ax.grid('on')
+        plt.tight_layout()
 
-        else:
-            print('invalid frequency bin')
 
 
 class Sound(object):
@@ -771,7 +753,7 @@ class Sound(object):
     """
 
     def __init__(self, data, name='', fundamental=None, condition=True, 
-                 auto_trim=False, use_raw_signal=False, 
+                 auto_trim=True, use_raw_signal=False, 
                  normalize_raw_signal=False, SoundParams=None):
         """
         Creates a Sound instance from a .wav file. A string can be supplied to
@@ -946,6 +928,8 @@ class Sound(object):
 
         For more information on the logarithmic envelope, see :
             `help(Signal.log_envelope)`
+    print("fmin:", fmin)
+    print("fmax:", fmax)
         """
         translated_bins = {'bass':'Basses',
                            'mid':'Mids',
@@ -963,6 +947,11 @@ class Sound(object):
 
         plt.xscale('log')
         plt.yscale('log')
+        ax = plt.gca()
+        ax.set_xlim(0.05, self.signal.time()[-1]) 
+        combined_min = np.min([self.bins[key].envelope()[0][-1] for key in self.bins])
+        combined_max = np.max([np.max(self.bins[key].envelope()[0]) for key in self.bins])
+        ax.set_ylim(combined_min, combined_max * 1.1) 
         plt.legend(fontsize="x-small")  # using a named size
 
     def peak_damping(self):
@@ -1016,6 +1005,27 @@ class Sound(object):
         ax.set_xlabel("Bandes de fréquence")
         ax.set_ylabel("Puissance totale (normalisée)")
         ax.set_title('Amplitude totale des bandes de fréquence')
+
+    def lognormspect(self):
+        """ 
+        Log normalized spectrogram of a sounds 
+        :param sound: guitarsound.Sound instance
+        :return : spectrogram_frequencies,
+        		  spectrogram_time,
+        		  spectrogram_amplitude
+        """
+        sig_arr = self.signal.signal
+        sr = self.signal.sr
+        
+        freqs, time, spec = spectrogram(sig_arr, sr, nperseg=1024)
+        spec /= np.max(spec)
+        thresh = 1e-4
+        low_values_idx = spec>thresh
+        log_min = np.min(np.log(spec[low_values_idx]))
+        spec[low_values_idx]= np.log(spec[low_values_idx])
+        spec[~low_values_idx] = log_min
+        spec -= np.min(spec)
+        return freqs, time, spec 
 
 
 class Signal(object):
@@ -1123,17 +1133,23 @@ class Signal(object):
 
         # Find an approximation of the distance between peaks, this only works for harmonic signals
         peak_distance = np.argmax(fft) // 2
+        max_fund_idx = np.where(fft_freq > 50)[0][0]
+        if peak_distance < max_fund_idx:
+            peak_distance = max_fund_idx
 
         # Maximum of the signal in a small region on both ends
         fft_max_start = np.max(fft[:peak_distance])
         fft_max_end = np.max(fft[max_index - peak_distance:max_index])
 
         # Build the curve below the peaks but above the noise
-        exponents = np.linspace(np.log10(fft_max_start), np.log10(fft_max_end), max_index)
+        exp_start = np.log10(fft_max_start)
+        exp_end = np.log10(max(fft_max_end, 1e-16))
+        exponents = np.linspace(exp_start, exp_end, max_index)
         intersect = 10 ** exponents[peak_distance]
         diff_start = fft_max_start - intersect  # offset by a small distance so that the first max is not a peak
-        min_height = 10 ** np.linspace(np.log10(fft_max_start + diff_start), np.log10(fft_max_end), max_index)
-
+        offset_fft_max_start = fft_max_start + diff_start
+        exp_start = np.log10(max(offset_fft_max_start, 1e-16))
+        min_height = 10 ** np.linspace(exp_start, exp_end, max_index)
         first_peak_indexes, _ = sig.find_peaks(fft[:max_index], height=min_height, distance=peak_distance)
 
         number_of_peaks = len(first_peak_indexes)
@@ -1314,27 +1330,81 @@ class Signal(object):
         The overlap value should be smaller than the window value.
         :return: Amplitude envelope of the signal
         """
-        if window is None:
-            window = self.SP.envelope.frame_size.value
-        if overlap is None:
-            overlap = window // 2
-        elif overlap >= window:
-            raise ValueError('Overlap must be smaller than window')
-        signal_array = np.abs(self.signal)
-        t = self.time()
-        # Empty envelope and envelope time
-        env = [0]
-        env_time = [0]
-        idx = 0
-        while idx + window < signal_array.shape[0]:
-            env.append(np.max(signal_array[idx:idx + window]))
-            pt_idx = np.argmax(signal_array[idx:idx + window]) + idx
-            env_time.append(t[pt_idx])
-            idx += overlap
-        _, unique_time_index = np.unique(env_time, return_index=True)
-        return np.array(env)[unique_time_index], np.unique(env_time)
+        # Detect the onset from noise level
+        sig_data = np.abs(self.signal)
+        onset_data = sig_data.copy()[:np.argmax(sig_data)]
+        guess_tresh = np.mean(sig_data[np.nonzero(self.time() > 0.05)[0][0]])*(10*np.max(sig_data))
+        try:
+            idx_onset = np.nonzero(sig_data > guess_tresh)[0][0]
+        except IndexError:
+            idx_onset = 0
+        
+        # Compute the envelop from onset to max value
+        start_idx = idx_onset
+        end_idx = np.argmax(sig_data)
+        onset_points = [0.]
+        onset_idxs = [idx_onset]
+        window = 20
+        step = 11
+        current_idx = start_idx
+        # Small window max value envelop
+        while True:
+            onset_points.append(np.max(sig_data[current_idx:current_idx+window]))
+            onset_idxs.append(current_idx + np.argmax(sig_data[current_idx:current_idx+window]))
+            current_idx += step
+            if current_idx > end_idx:
+                break
+        onset_points.append(np.max(sig_data[current_idx-step:end_idx+1]))
+        onset_idxs.append(current_idx - step +np.argmax(sig_data[current_idx-step:end_idx+1]))
+        # Filter for stricly increasing
+        increasing_onset_points = [onset_points[0]]
+        increasing_onset_idxs = [onset_idxs[0]]
+        for i in range(1, len(onset_points)):
+            if (onset_points[i] - increasing_onset_points[-1]) > 1e-2*np.max(sig_data):
+                increasing_onset_points.append(onset_points[i])
+                increasing_onset_idxs.append(onset_idxs[i])
+        onset_points = increasing_onset_points
+        onset_idxs = increasing_onset_idxs
+        # try to use 2 x fundamental as period
+        try:
+            fundamental = self.fft_frequencies()[self.peaks()][0]
+        # This doesnt work for frequency bins
+        except ValueError:
+            # Fall back on mean frequency of guitar open strings
+            fundamental = np.mean([82.4, 110., 146.8, 196., 246.9, 329.6])
+        period = 1/fundamental
+        window = int(period * self.sr)*2
+        window = max(window, int(1/100 * self.sr))
+        step = window-1
+        envelop_points = onset_points.copy()
+        envelop_idxs = onset_idxs.copy()
+        current_idx = end_idx + 1
+        # Fondamental period window max value envelop
+        while True:
+            idx_at_max = current_idx + np.argmax(sig_data[current_idx:current_idx+window])
+            if np.abs(idx_at_max - envelop_idxs[-1]) > 10:
+                envelop_points.append(np.max(sig_data[current_idx:current_idx+window]))
+                envelop_idxs.append(current_idx + np.argmax(sig_data[current_idx:current_idx+window]))
+            current_idx += step
+            if current_idx > len(sig_data):
+                break
+        # Remove duplicates
+        envelop_idxs, unique_idx = np.unique(envelop_idxs, return_index=True)
+        envelop_points = np.array(envelop_points)[unique_idx]
+        # Set concave points to the mean of the min and mean
+        convex_points = [envelop_points[0], envelop_points[1]]
+        for i in range(2, len(envelop_points)-1):
+            if envelop_points[i] < envelop_points[i-1] and envelop_points[i] < envelop_points[i+1]:
+                min_value = np.min([envelop_points[i-1], envelop_points[i+1]])
+                mean_value = np.mean([envelop_points[i-1], envelop_points[i+1]])
+                convex_points.append(np.mean([min_value, mean_value]))
+            else:
+                convex_points.append(envelop_points[i])
+        convex_points.append(envelop_points[-1])
+        convex_points = np.array(convex_points)        
+        return convex_points, self.time()[envelop_idxs]
 
-    def log_envelope(self):
+    def log_envelope(self, legacy=False):
         """
         Computes the logarithmic scale envelope of the signal.
         The width of the samples increases exponentially so that
@@ -1342,52 +1412,55 @@ class Signal(object):
         an X axis logarithmic scale.
         :return: The log envelope and the time vector associated in a tuple
         """
-        if self.onset is None:
-            onset = np.argmax(np.abs(self.signal))
-        else:
-            onset = self.onset
-
-        start_time = self.SP.log_envelope.start_time.value
-        while start_time > (onset / self.sr):
-            start_time /= 10.
-
-        start_exponent = int(np.log10(start_time))  # closest 10^x value for smooth graph
-
-        if self.SP.log_envelope.min_window.value is None:
-            min_window = 15 ** (start_exponent + 4)
-            if min_window < 15:  # Value should at least be 10
-                min_window = 15
-        else:
-            min_window = self.SP.log_envelope.min_window.value
-
-        # initial values
-        current_exponent = start_exponent
-        current_time = 10 ** current_exponent  # start time on log scale
-        index = int(current_time * self.sr)  # Start at the specified time
-        window = min_window  # number of samples per window
-        overlap = window // 2
-        log_envelope = [0]
-        log_envelope_time = [0]  # First value for comparison
-
-        while index + window <= len(self.signal):
-
-            while log_envelope_time[-1] < 10 ** (current_exponent + 1):
-                if (index + window) < len(self.signal):
-                    log_envelope.append(np.max(np.abs(self.signal[index:index + window])))
-                    pt_idx = np.argmax(np.abs(self.signal[index:index + window]))
-                    log_envelope_time.append(self.time()[index + pt_idx])
-                    index += overlap
-                else:
-                    break
-
-            if window * 10 < self.SP.log_envelope.max_window.value:
-                window = window * 10
+        if legacy:
+            if self.onset is None:
+                onset = np.argmax(np.abs(self.signal))
             else:
-                window = self.SP.log_envelope.max_window.value
+                onset = self.onset
+
+            start_time = self.SP.log_envelope.start_time.value
+            while start_time > (onset / self.sr):
+                start_time /= 10.
+
+            start_exponent = int(np.log10(start_time))  # closest 10^x value for smooth graph
+
+            if self.SP.log_envelope.min_window.value is None:
+                min_window = 15 ** (start_exponent + 4)
+                if min_window < 15:  # Value should at least be 10
+                    min_window = 15
+            else:
+                min_window = self.SP.log_envelope.min_window.value
+
+            # initial values
+            current_exponent = start_exponent
+            current_time = 10 ** current_exponent  # start time on log scale
+            index = int(current_time * self.sr)  # Start at the specified time
+            window = min_window  # number of samples per window
             overlap = window // 2
-            current_exponent += 1
-        time, idxs = np.unique(log_envelope_time, return_index=True)
-        return np.array(log_envelope)[idxs], time
+            log_envelope = [0]
+            log_envelope_time = [0]  # First value for comparison
+
+            while index + window <= len(self.signal):
+
+                while log_envelope_time[-1] < 10 ** (current_exponent + 1):
+                    if (index + window) < len(self.signal):
+                        log_envelope.append(np.max(np.abs(self.signal[index:index + window])))
+                        pt_idx = np.argmax(np.abs(self.signal[index:index + window]))
+                        log_envelope_time.append(self.time()[index + pt_idx])
+                        index += overlap
+                    else:
+                        break
+
+                if window * 10 < self.SP.log_envelope.max_window.value:
+                    window = window * 10
+                else:
+                    window = self.SP.log_envelope.max_window.value
+                overlap = window // 2
+                current_exponent += 1
+            time, idxs = np.unique(log_envelope_time, return_index=True)
+            return np.array(log_envelope)[idxs], time
+        else:
+            return self.envelope()
 
     def find_onset(self, verbose=True):
         """
@@ -1438,15 +1511,15 @@ class Signal(object):
         if onset > delay_samples:  # To make sure the index is positive
             new_signal = self.signal[onset - delay_samples:]
             new_signal[:delay_samples // 2] = new_signal[:delay_samples // 2] * np.linspace(0, 1, delay_samples // 2) 
-            trimmed_signal = Signal(new_signal, self.sr, self.SP)
-            trimmed_signal.onset = trimmed_signal.find_onset(verbose=verbose)
-            return trimmed_signal
 
         else:
-            if verbose:
-                print('Signal is too short to be trimmed before onset.')
-                print('')
-            return self
+            fill_samples = delay_samples - onset
+            new_signal = np.hstack([np.zeros(fill_samples), self.signal])
+            new_signal[:delay_samples // 2] = new_signal[:delay_samples // 2] * np.linspace(0, 1, delay_samples // 2) 
+
+        trimmed_signal = Signal(new_signal, self.sr, self.SP)
+        trimmed_signal.onset = trimmed_signal.find_onset(verbose=verbose)
+        return trimmed_signal
 
     def trim_time(self, time_length):
         """
@@ -1601,6 +1674,10 @@ class Plot(object):
         plt.xlabel("Temps (s)")
         plt.ylabel("Amplitude (Entre 0 et 1)")
         plt.xscale('log')
+        # Try being smart with the x limits
+        idx_min_time = np.where((log_envelope/np.max(log_envelope)) > 0.05)[0][0]
+        min_time = log_envelope_time[idx_min_time] / 2
+        plt.gca().set_xlim(min_time, log_envelope_time[max_index-1])
         plt.grid('on')
 
     def fft(self, **kwargs):
@@ -1648,7 +1725,7 @@ class Plot(object):
         plt.hist(self.parent.fft_bins(), utils.octave_histogram(self.parent.SP.general.octave_fraction.value),
                  alpha=0.7, **plot_kwargs)
         plt.xlabel('Fréquence (Hz)')
-        plt.ylabel('Amplitude (normalisée)')
+        plt.ylabel('Amplitude')
         plt.xscale('log')
         plt.yscale('log')
         plt.grid('on')

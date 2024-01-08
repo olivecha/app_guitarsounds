@@ -1,10 +1,13 @@
 import os
 import io
+import numpy as np
 from PIL import Image
 from guitarsounds.analysis import Plot, Signal, Sound, SoundPack
 import matplotlib.pyplot as plt
 import streamlit as st
 import scipy.io
+from scipy.signal import spectrogram
+import app_utils
 
 
 def plot_with_sound(fun):
@@ -55,6 +58,246 @@ def streamlit_listen_freq_bins(sound):
         coldownload.download_button(label=':arrow_down:',
                                     data=file_bytes,
                                     file_name=f'{sound.name}_{key}.wav',)
+
+def variable_signal_plot(sound, tmin, tmax, c):
+    """
+    Plot the signal curve with custom time range
+    """
+    sound.plot.signal()
+    ax = plt.gca()
+    if tmin < tmax:
+        ax.set_xlim(tmin, tmax)
+    else:
+        c.warning('Le temps min doit être plus petit que le temps max')
+    
+    
+def variable_signal_context(sound):
+    """
+    Menu for the variable time signal plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Temps min", 
+                                      min_value=0.0)
+    upper_bound = colmax.number_input(label="Temps max", 
+                                      max_value=sound.signal.time()[-1],
+                                      value=sound.signal.time()[-1])
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 key='Actualiser signal',
+                 on_click=app_utils.create_figure, 
+                 args=(variable_signal_plot, 
+                       'signal', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+
+    if 'signal.png' not in os.listdir('figure_cache'):
+        print("Generating first figure")
+        app_utils.create_figure(plot_with_sound(Plot.signal),
+                               'signal',
+                                sound)
+
+                                
+def variable_envelope_plot(sound, tmin, tmax, c):
+    """
+    Plot the envelope curve with custom time range
+    """
+    sound.plot.envelope()
+    ax = plt.gca()
+    if tmin < tmax:
+        ax.set_xlim(tmin, tmax)
+    else:
+        c.warning('Le temps min doit être plus petit que le temps max')
+    
+    
+def variable_envelope_context(sound):
+    """
+    Menu for the variable time envelope plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Temps min", 
+                                      key='envelope min',
+                                      min_value=0.0)
+    upper_bound = colmax.number_input(label="Temps max", 
+                                      key='envelope max',
+                                      max_value=sound.signal.time()[-1],
+                                      value=sound.signal.time()[-1])
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 key='Actialiser envelope',
+                 on_click=app_utils.create_figure, 
+                 args=(variable_envelope_plot, 
+                       'envelope', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+
+    if 'envelope.png' not in os.listdir('figure_cache'):
+        print("Generating first envelope figure")
+        app_utils.create_figure(plot_with_sound(Plot.envelope),
+                               'envelope',
+                                sound)
+
+
+def variable_logenv_plot(sound, tmin, tmax, c):
+    """
+    Plot the log envelope  curve with custom time range
+    """
+    sound.plot.log_envelope()
+    ax = plt.gca()
+    if tmin < tmax:
+        ax.set_xlim(tmin, tmax)
+    else:
+        c.warning('Le temps min doit être plus petit que le temps max')
+    
+    
+def variable_logenv_context(sound):
+    """
+    Menu for the variable time log envelope plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Temps min", 
+                                      key='logenv min',
+                                      min_value=0.0)
+    upper_bound = colmax.number_input(label="Temps max", 
+                                      key='logenv max',
+                                      max_value=sound.signal.time()[-1],
+                                      value=sound.signal.time()[-1])
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 key='Actualiser logenv',
+                 on_click=app_utils.create_figure, 
+                 args=(variable_logenv_plot, 
+                       'logenv', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+
+    if 'logenv.png' not in os.listdir('figure_cache'):
+        print("Generating first log envelope figure")
+        app_utils.create_figure(plot_with_sound(Plot.log_envelope),
+                               'logenv',
+                                sound)
+
+
+def variable_fft_plot(sound, fmin, fmax, c):
+    """
+    Plot the FFT  with custom frequency range
+    """
+    sound.plot.fft()
+    ax = plt.gca()
+    if fmin < fmax:
+        ax.set_xlim(fmin, fmax)
+    else:
+        c.warning('La fréquence min doit être plus petite que la fréquence max')
+    
+    
+def variable_fft_context(sound):
+    """
+    Menu for the variable time log envelope plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Fréquence min", 
+                                      min_value=0)
+    upper_bound = colmax.number_input(label="Fréquence max", 
+                                      max_value=3000,
+                                      value=2000)
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 on_click=app_utils.create_figure, 
+                 key='Actualiser fft',
+                 args=(variable_fft_plot, 
+                       'fft', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+
+    if 'fft.png' not in os.listdir('figure_cache'):
+        print("Generating first fft figure")
+        app_utils.create_figure(plot_with_sound(Plot.fft),
+                               'fft',
+                                sound)
+
+def sound_spectrogram(sound):
+    """
+    Plots a spectrogram of a single sound
+    """
+    sig_arr = sound.signal.signal
+    sr = sound.signal.sr
+
+    freqs, time, spec = spectrogram(sig_arr, sr, nperseg=1024)
+    spec /= np.max(spec)
+    thresh = 1e-4
+    low_values_idx = spec>thresh
+    log_min = np.min(np.log(spec[low_values_idx]))
+    spec[low_values_idx]= np.log(spec[low_values_idx])
+    spec[~low_values_idx] = log_min
+
+    plt.pcolormesh(time,
+                   freqs,
+                   spec,
+                   shading='gouraud',
+                   cmap='inferno')
+    plt.colorbar(label='Amplitude (dB)')
+    ax = plt.gca()
+    ax.set_ylim(1, 1.1*sound.SP.general.fft_range.value)
+    ax.set_xlabel('Temps (s)')
+    ax.set_ylabel('Fréquence (Hz)')
+
+
+def spectrogram_diff(soundpack):
+	"""
+	Plot the difference in the spectrograms of two sounds
+	"""
+	# Access the sounds and compute log normalized spectrograms
+	son1 = soundpack.sounds[0]
+	son2 = soundpack.sounds[1]
+	fq1, t1, Sp1 = son1.lognormspect()
+	fq2, t2, Sp2 = son2.lognormspect()
+
+	# Compute and normalize difference
+	Sp_diff = Sp1 - Sp2
+	Sp_diff -= np.min(Sp_diff)
+	Sp_diff /= np.max(Sp_diff)
+	Sp_diff *= 2
+	Sp_diff -= 1
+	mean_val = np.mean(Sp_diff)
+	# Set the mean value in the center of the data range
+	# This makes the colormap symmetric
+	if mean_val > 0:
+		Sp_diff[Sp_diff > 0] -= mean_val
+		Sp_diff[Sp_diff > 0] /= (1 - mean_val)
+	else:
+		Sp_diff[Sp_diff < 0] -= mean_val
+		Sp_diff[Sp_diff < 0] /= (1 + mean_val)
+
+	# Plot the result
+	plt.pcolormesh(t1,
+				   fq1,
+				   Sp_diff,
+				   shading='gouraud',
+				   cmap='RdBu')
+
+	ax = plt.gca()
+	ax.set_ylim(1, 1.1*son1.SP.general.fft_range.value)
+	ax.set_xlim(0, son1.signal.time()[-1])
+	ax.set_xlabel('Temps (s)')
+	ax.set_ylabel('Fréquence (Hz)')
+	plt.colorbar(label=f'<- {son1.name}    :    {son2.name} ->')
+	ax.set_title('Différence entre deux spectrogrammes')
+
     
 single_sound_analysis_names = {'signal':'Tracer la courbe du son',
                                'envelope':"Tracer l'enveloppe du signal",
@@ -62,17 +305,19 @@ single_sound_analysis_names = {'signal':'Tracer la courbe du son',
                                'fft':'Tracer le spectre fréquentiel du son (FFT)',
                                'ffthist':"Tracer l'histogramme du spectre fréquentiel (FFT)",
                                'peaks':"Visualiser les pics du spectre fréquentiel (FFT)",
+                               'specgram':"Visualiser le spectrogramme du son",
                                'timedamp':"Tracer l'amortissement temporel",
                                'listenband':"Écouter les bandes de fréquence",
                                'plotband':"Tracer les bandes de fréquence",
                                'histband':"Histogramme des bandes de fréquence"}
 
-single_sound_analysis_functions = {'signal':plot_with_sound(Plot.signal),
-                                   'envelope':plot_with_sound(Plot.envelope),
-                                   'logenv':plot_with_sound(Plot.log_envelope),
-                                   'fft':plot_with_sound(Plot.fft),
+single_sound_analysis_functions = {'signal':variable_signal_context,
+                                   'envelope':variable_envelope_context,
+                                   'logenv':variable_logenv_context,
+                                   'fft':variable_fft_context,
                                    'ffthist':plot_with_sound(Plot.fft_hist),
                                    'peaks':plot_with_sound(Plot.peaks),
+                                   'specgram':sound_spectrogram,
                                    'timedamp':plot_with_sound(Plot.time_damping),
                                    'listenband':streamlit_listen_freq_bins,
                                    'plotband':Sound.plot_freq_bins,
@@ -81,24 +326,26 @@ single_sound_analysis_functions = {'signal':plot_with_sound(Plot.signal),
 single_sound_analysis_help = {'signal':load_md(os.path.join('documentation', 'signal.md')),
                               'envelope':load_md(os.path.join('documentation', 'envelope.md')),
                               'logenv':load_md(os.path.join('documentation', 'logenvelope.md')),
-                              'fft':'TODO',
-                              'ffthist':'TODO',
-                              'peaks':'TODO',
-                              'timedamp':'TODO',
-                              'listenband':'TODO',
-                              'plotband':'TODO',
-                              'histband':'TODO'}
+                              'fft':load_md(os.path.join('documentation', 'fft.md')),
+                              'ffthist':load_md(os.path.join('documentation', 'binfft.md')),
+                              'peaks':load_md(os.path.join('documentation', 'peaks.md')),                              
+                              'specgram':load_md(os.path.join('documentation', 'specgram.md')),
+                              'timedamp':load_md(os.path.join('documentation', 'timedamp.md')), 
+                              'listenband':load_md(os.path.join('documentation', 'listenband.md')), 
+                              'plotband':load_md(os.path.join('documentation', 'plotband.md')), 
+                              'histband':load_md(os.path.join('documentation', 'histband.md'))} 
 
 single_sound_analysis_help_figures = {'signal':Image.open(os.path.join('documentation', 'figures', 'signal.png')),
                                       'envelope':Image.open(os.path.join('documentation', 'figures', 'envelope.png')),
-                                      'logenv':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                      'fft':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                      'ffthist':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                      'peaks':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                      'timedamp':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                      'listenband':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                      'plotband':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                      'histband':Image.open(os.path.join('documentation', 'figures', 'placeholder.png'))}
+                                      'logenv':Image.open(os.path.join('documentation', 'figures', 'logenv.png')),
+                                      'fft':Image.open(os.path.join('documentation', 'figures', 'fft.png')),
+                                      'ffthist':Image.open(os.path.join('documentation', 'figures', 'ffthist.png')),
+                                      'peaks':Image.open(os.path.join('documentation', 'figures', 'peaks.png')),
+                                      'specgram':Image.open(os.path.join('documentation', 'figures', 'specgram.png')),
+                                      'timedamp':Image.open(os.path.join('documentation', 'figures', 'timedamp.png')),
+                                      'listenband':Image.open(os.path.join('documentation', 'figures', 'listenband.png')),
+                                      'plotband':Image.open(os.path.join('documentation', 'figures', 'plotband.png')),
+                                      'histband':Image.open(os.path.join('documentation', 'figures', 'histband.png'))}
 
 """ 
 Pre-defined analyses for dual soundpacks (n = 2)
@@ -110,6 +357,7 @@ dual_sound_analysis_names = {'msignal':'Tracer la courbe des sons',
                              'mffthist':"Tracer l'histogramme du spectre fréquentiel des sons (FFT)",
                              'fftmirror':'Comparer les spectres fréquentiels en configuration mirroir (FFT)',
                              'fftdiff':'Visualiser la différence entre les spectres fréquentiels (FFT)',
+							 'specdiff':'Visualiser la différence entre les spectrogrammes des sons',
                              'peakcomp':'Comparer les pics du spectre fréquentiel (FFT)',
                              'fbinplot':'Tracer les bandes de fréquence',
                              'binhist':'Histogramme des bandes de fréquences',
@@ -124,33 +372,36 @@ dual_sound_analysis_functions = {'msignal':plot_with_soundpack(Plot.signal),
                                  'peakcomp': SoundPack.compare_peaks,
                                  'fftmirror': SoundPack.fft_mirror,
                                  'fftdiff': SoundPack.fft_diff,
+								 'specdiff':spectrogram_diff,
                                  'binpower': SoundPack.integral_plot,
                                  'binhist': SoundPack.bin_power_hist,
                                  'fbinplot': SoundPack.freq_bin_plot,}
 
 dual_sound_analysis_help = {'msignal':load_md(os.path.join('documentation', 'signal.md')),                             
                             'menvelope':load_md(os.path.join('documentation', 'envelope.md')),                             
-                            'mlogenv':'TODO',
-                            'mfft':'TODO',
-                            'mffthist':'TODO',
-                            'peakcomp': 'TODO',
-                            'fftmirror': 'TODO',
-                            'fftdiff': 'TODO',
-                            'binpower': 'TODO',
-                            'binhist': 'TODO',
-                            'fbinplot': 'TODO',}
+                            'mlogenv':load_md(os.path.join('documentation', 'logenvelope.md')),
+                            'mfft':load_md(os.path.join('documentation', 'fft.md')),
+                            'mffthist':load_md(os.path.join('documentation', 'binfft.md')),
+                            'peakcomp':load_md(os.path.join('documentation', 'peakcomp.md')),
+                            'fftmirror':load_md(os.path.join('documentation', 'fftmirror.md')),
+                            'fftdiff':load_md(os.path.join('documentation', 'fftdiff.md')),
+							'specdiff':load_md(os.path.join('documentation','specdiff.md')),
+                            'binpower':load_md(os.path.join('documentation', 'binpower.md')),
+                            'binhist':load_md(os.path.join('documentation', 'histband.md')),
+                            'fbinplot':load_md(os.path.join('documentation', 'fbinplot.md')),}
 
 dual_sound_analysis_help_figures = {'msignal':Image.open(os.path.join('documentation', 'figures', 'signal.png')),
                                     'menvelope':Image.open(os.path.join('documentation', 'figures', 'envelope.png')),
-                                    'mlogenv':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                    'mfft':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                    'mffthist':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                    'peakcomp':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                    'fftmirror':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                    'fftdiff':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                    'binpower':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                    'binhist':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                    'fbinplot':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),}
+                                    'mlogenv':Image.open(os.path.join('documentation', 'figures', 'logenv.png')),
+                                    'mfft':Image.open(os.path.join('documentation', 'figures', 'fft.png')),
+                                    'mffthist':Image.open(os.path.join('documentation', 'figures', 'ffthist.png')),
+                                    'peakcomp':Image.open(os.path.join('documentation', 'figures', 'peakcomp.png')),
+                                    'fftmirror':Image.open(os.path.join('documentation', 'figures', 'fftmirror.png')),
+                                    'fftdiff':Image.open(os.path.join('documentation', 'figures', 'fftdiff.png')),
+									'specdiff':Image.open(os.path.join('documentation', 'figures', 'specdiff.png')),
+                                    'binpower':Image.open(os.path.join('documentation', 'figures', 'binpower.png')),
+                                    'binhist':Image.open(os.path.join('documentation', 'figures', 'dhistband.png')),
+                                    'fbinplot':Image.open(os.path.join('documentation', 'figures', 'fbinplot.png')),}
 
 """ 
 Defined analyses for multiple sounds case (n > 2)
@@ -177,21 +428,21 @@ multi_sound_analysis_functions  = {'msignal':plot_with_soundpack(Plot.signal),
 
 multi_sound_analysis_help = {'msignal':load_md(os.path.join('documentation', 'signal.md')),                             
                              'menvelope':load_md(os.path.join('documentation', 'envelope.md')),                             
-                             'mlogenv':'TODO',
-                             'mfft':'TODO',
-                             'mffthist':'TODO',
-                             'mfbinplot':'TODO',
-                             'mbinpower':'TODO',
-                             'mbinhist':'TODO',}
+                             'mlogenv':load_md(os.path.join('documentation', 'logenvelope.md')),
+                             'mfft':load_md(os.path.join('documentation', 'fft.md')),
+                             'mffthist':load_md(os.path.join('documentation', 'binfft.md')),
+                             'mfbinplot':load_md(os.path.join('documentation', 'fbinplot.md')),
+                             'mbinpower':load_md(os.path.join('documentation', 'binpower.md')),
+                             'mbinhist':load_md(os.path.join('documentation', 'histband.md')),}
 
 multi_sound_analysis_help_figures = {'msignal':Image.open(os.path.join('documentation', 'figures', 'signal.png')),
                                      'menvelope':Image.open(os.path.join('documentation', 'figures', 'envelope.png')),
-                                     'mlogenv':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                     'mfft':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                     'mffthist':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                     'mfbinplot':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                     'mbinpower':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),
-                                     'mbinhist':Image.open(os.path.join('documentation', 'figures', 'placeholder.png')),}
+                                     'mlogenv':Image.open(os.path.join('documentation', 'figures', 'logenv.png')),
+                                     'mfft':Image.open(os.path.join('documentation', 'figures', 'fft.png')),
+                                     'mffthist':Image.open(os.path.join('documentation', 'figures', 'ffthist.png')),
+                                     'mfbinplot':Image.open(os.path.join('documentation', 'figures', 'fbinplot.png')),
+                                     'mbinpower':Image.open(os.path.join('documentation', 'figures', 'binpower.png')),
+                                     'mbinhist':Image.open(os.path.join('documentation', 'figures', 'dhistband.png')),}
 
 
 """ 
@@ -221,4 +472,6 @@ all_report_headers  = {'mfbinplot':'Amplitude des Bandes de fréquences selon le
                        'peaks':"Analyse des pics du spectre fréquentiel (FFT) du son",
                        'timedamp':"Amortissement temporel du son",
                        'plotband':"Graphique des bandes de fréquence du son",
+                       'specgram':"Spectrograme normalisé du son",
+                       'specdiff':"Différence normalisée entre les spectrogrammes de deux sons",
                        'histband':"Histogramme des bandes de fréquence"}

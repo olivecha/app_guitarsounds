@@ -1,4 +1,5 @@
 import os
+import datetime
 from inspect import getdoc
 import numpy as np
 from docx import Document
@@ -50,23 +51,61 @@ def remove_cached_sound(session_state, sound_key):
     """
     session_state['sounds_cache'].pop(sound_key)
 
+def remove_log_ticks(fig):
+    """
+    Make the ticks in log scale plots linear so its less confusing
+    """
+    for ax in fig.axes:
+        labels = ax.get_xticklabels()
+        xmin, xmax = ax.get_xlim()
+        new_labels = []
+        textual_label_case = False
+        for l in labels:
+            try:
+                _, number, exp = l.get_text().split('{')
+                number = number.replace('^', "")
+                exp = exp.split('}')[0]
+                value = int(number) ** int(exp)
+                new_labels.append(value)
+            except ValueError:
+                nstr = l.get_text()
+                # Fancy fancy matplotlib
+                nstr = nstr.replace('−', '-')
+                if '.' in nstr:
+                    new_labels.append(float(nstr))
+                else:
+                    try:
+                        new_labels.append(int(nstr))
+                    except ValueError:
+                        textual_label_case = True
+        if textual_label_case:
+            ax.set_xticklabels(labels)
+        else:
+            new_labels = [l for l in new_labels if l > xmin]
+            new_labels = [l for l in new_labels if l < xmax]
+            ax.set_xticks(new_labels)
+            ax.set_xticklabels(new_labels)
 
 def create_figure(analysis, key, *args):
     """ Run a plotting fonction but include calls to streamlit """
-    fig, ax   = plt.subplots(figsize=(10, 6))
+    fig, ax   = plt.subplots(figsize=(7, 4.5))
     plt.sca(ax)
     analysis(*args)
-    plt.gcf().savefig(os.path.join('figure_cache',key))
+    fig = plt.gcf()
+    #TODO: make less sketch
+    remove_log_ticks(fig)
+    fig.savefig(os.path.join('figure_cache',key), dpi=200)
 
 def generate_report(report_analyses):
     """Génère un rapport d'analyse en format word"""
     document = Document()
-    document.add_heading('Rapport guitarsounds',level=1)
+    today = datetime.date.today()
+    document.add_heading(f"Rapport d'analyse comparative de sons de guitare", level=0)
+    document.add_heading(f'({today.day}/{today.month}/{today.year})', level=2)
     for analysis in report_analyses:
         if report_analyses[analysis]:
-            document.add_heading(all_report_headers[analysis], level=2)
+            document.add_paragraph(all_report_headers[analysis], style='Heading 2')
             document.add_picture(f'figure_cache/{analysis}.png',width=Inches(5))
-    document.save('report.docx')
-
+        document.save('report.docx')
 
 
