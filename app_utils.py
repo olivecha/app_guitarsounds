@@ -1,14 +1,19 @@
 import os
-import datetime
+import io
 from inspect import getdoc
 import numpy as np
-from docx import Document
-from docx.shared import Inches
 import streamlit as st
 import matplotlib.pyplot as plt
 from PIL import Image
 from guitarsounds.analysis import Plot, Signal, Sound, SoundPack
-from defined_analyses import all_report_headers
+
+def mpl2pil(fig):
+    """Convert a Matplotlib figure to a PIL Image and return it"""
+    buf = io.BytesIO()
+    fig.savefig(buf)
+    buf.seek(0)
+    img = Image.open(buf)
+    return img
 
 def get_file_number(filename):
     """ get the number in a filename """
@@ -92,20 +97,30 @@ def create_figure(analysis, key, *args):
     plt.sca(ax)
     analysis(*args)
     fig = plt.gcf()
-    #TODO: make less sketch
     remove_log_ticks(fig)
     fig.savefig(os.path.join('figure_cache',key), dpi=200)
 
-def generate_report(report_analyses):
-    """Génère un rapport d'analyse en format word"""
-    document = Document()
-    today = datetime.date.today()
-    document.add_heading(f"Rapport d'analyse comparative de sons de guitare", level=0)
-    document.add_heading(f'({today.day}/{today.month}/{today.year})', level=2)
-    for analysis in report_analyses:
-        if report_analyses[analysis]:
-            document.add_paragraph(all_report_headers[analysis], style='Heading 2')
-            document.add_picture(f'figure_cache/{analysis}.png',width=Inches(5))
-        document.save('report.docx')
 
+def audioseg2guitarsound(a):
+    """
+    Convert an AudioSegment object
+    to a guitarsound.Sound
+    """
+    a = a.split_to_mono()[0] 
+    norm_signal = np.array(a.get_array_of_samples())
+    norm_signal = norm_signal / a.max_possible_amplitude
+    sample_rate = a.frame_rate
+    sound = Sound((norm_signal, sample_rate))
+    return sound
 
+def state_modifying_function(args=None, state=None):
+    """
+    Test fun
+    """
+    if "image" not in state:
+        x = np.arange(10)
+        plt.plot(x, x)
+        fig = plt.gcf()
+        img = mpl2pil(fig)
+        state["image"] = img
+    return state

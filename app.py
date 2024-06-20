@@ -1,32 +1,203 @@
-import time, os
+import time, os, io
 from inspect import getdoc
 from tempfile import NamedTemporaryFile
 import streamlit as st
 import numpy as np
 from PIL import Image
+from docx import Document
+from docx.shared import Inches
+import datetime
 import matplotlib.pyplot as plt
 import soundfile as sf
-import librosa
 from pydub import AudioSegment
 from audiorecorder import audiorecorder
 from guitarsounds.utils import load_wav
 from guitarsounds.analysis import Sound, Plot, SoundPack
 from app_utils import get_file_number, get_cached_next_number
-from app_utils import remove_cached_sound, create_figure
-from app_utils import generate_report
+from app_utils import remove_cached_sound, audioseg2guitarsound
+from app_utils import mpl2pil, remove_log_ticks
 import defined_analyses
+from defined_analyses import all_report_headers
 
-#""" 
-#Session setup
+
 #"""
+#Interactive analysis call back functions
+#"""
+def create_figure3(analysis, key, *args):
+    """ Create figure and updates state """
+    fig, ax   = plt.subplots(figsize=(7, 4.5))
+    plt.sca(ax)
+    analysis(*args)
+    fig = plt.gcf()
+    remove_log_ticks(fig)
+    image = mpl2pil(fig)
+    st.session_state['cached_images'][key] = image
 
-# Clear the old figures on start
-if 'cleared_figures' not in st.session_state:
-    if 'figure_cache' not in os.listdir():
-        os.mkdir('figure_cache')
-    for f in os.listdir('figure_cache'):
-        os.remove(os.path.join('figure_cache', f))
-    st.session_state['cleared_figures'] = True
+def create_figure2(analysis, key, *args):
+    """ Run a plotting fonction but include calls to streamlit """
+    fig, ax   = plt.subplots(figsize=(7, 4.5))
+    plt.sca(ax)
+    analysis(*args)
+    fig = plt.gcf()
+    remove_log_ticks(fig)
+    image = mpl2pil(fig)
+    return image
+
+def generate_report(report_analyses, cached_images):
+    """Génère un rapport d'analyse en format word"""
+    document = Document()
+    today = datetime.date.today()
+    document.add_heading(f"Rapport d'analyse comparative de sons de guitare", level=0)
+    document.add_heading(f'({today.day}/{today.month}/{today.year})', level=2)
+    for analysis in report_analyses:
+        if report_analyses[analysis]:
+            document.add_paragraph(all_report_headers[analysis], style='Heading 2')
+            tempFile = io.BytesIO()
+            image = cached_images[analysis]
+            image.save(tempFile, format="PNG")
+            document.add_picture(tempFile, width=Inches(5))
+        tempDoc = io.BytesIO()
+        document.save(tempDoc)
+        tempDoc.seek(0)
+        st.session_state["report_file"] = tempDoc
+
+def variable_signal_context(sound):
+    """
+    Menu for the variable time signal plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Temps min", 
+                                      min_value=0.0)
+    upper_bound = colmax.number_input(label="Temps max", 
+                                      max_value=sound.signal.time()[-1],
+                                      value=sound.signal.time()[-1])
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 key='Actualiser signal',
+                 on_click=create_figure3, 
+                 args=(defined_analyses.variable_signal_plot, 
+                       'signal', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+    # Change the session state if there is no image
+    if st.session_state['cached_images']['signal'] is None:
+        fun = defined_analyses.plot_with_sound(defined_analyses.Plot.signal)
+        img = create_figure2(fun,
+                             'signal',
+                             sound)
+        st.session_state['cached_images']['signal'] = img
+
+def variable_envelope_context(sound):
+    """
+    Menu for the variable time envelope plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Temps min", 
+                                      key='envelope min',
+                                      min_value=0.0)
+    upper_bound = colmax.number_input(label="Temps max", 
+                                      key='envelope max',
+                                      max_value=sound.signal.time()[-1],
+                                      value=sound.signal.time()[-1])
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 key='Actialiser envelope',
+                 on_click=create_figure3, 
+                 args=(defined_analyses.variable_envelope_plot, 
+                       'envelope', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+    if st.session_state['cached_images']['envelope'] is None:
+        print("Generating first envelope figure")
+        fun = defined_analyses.plot_with_sound(defined_analyses.Plot.envelope)
+        img = create_figure2(fun,
+                             'envelope',
+                             sound)
+        st.session_state['cached_images']['envelope'] = img
+
+def variable_logenv_context(sound):
+    """
+    Menu for the variable time log envelope plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Temps min", 
+                                      key='logenv min',
+                                      min_value=0.0)
+    upper_bound = colmax.number_input(label="Temps max", 
+                                      key='logenv max',
+                                      max_value=sound.signal.time()[-1],
+                                      value=sound.signal.time()[-1])
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 key='Actualiser logenv',
+                 on_click=create_figure3, 
+                 args=(defined_analyses.variable_logenv_plot, 
+                       'logenv', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+
+    if st.session_state['cached_images']['logenv'] is None:
+        fun = defined_analyses.plot_with_sound(defined_analyses.Plot.log_envelope)
+        img = app_utils.create_figure2(fun,
+                                       'logenv',
+                                       sound)
+
+def variable_fft_context(sound):
+    """
+    Menu for the variable time log envelope plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Fréquence min", 
+                                      min_value=0)
+    upper_bound = colmax.number_input(label="Fréquence max", 
+                                      max_value=3000,
+                                      value=2000)
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 on_click=create_figure3, 
+                 key='Actualiser fft',
+                 args=(defined_analyses.variable_fft_plot, 
+                       'fft', 
+                        sound,
+                        lower_bound,
+                        upper_bound,
+                        c))
+
+    if st.session_state['cached_images']['fft'] is None:
+        fun = defined_analyses.plot_with_sound(defined_analyses.Plot.fft)
+        img = create_figure2(fun,
+                             'fft',
+                             sound)
+        st.session_state['cached_images']['fft'] = img
+
+# """
+# Update the defined analyses with the locally defined functions
+# """
+defined_analyses.single_sound_analysis_functions['signal'] = variable_signal_context
+defined_analyses.single_sound_analysis_functions['envelope'] = variable_envelope_context
+defined_analyses.single_sound_analysis_functions['logenv'] = variable_logenv_context
+defined_analyses.single_sound_analysis_functions['fft'] = variable_fft_context
+
+# """ 
+# Session setup
+# """
+
+if "report_file" not in st.session_state:
+    st.session_state["report_file"] = None
 
 # Flag to not upload the sound for every run
 if 'upload_status' not in st.session_state:
@@ -63,6 +234,7 @@ def set_state(menu, analysis, state):
     """ set the session state of a menu to organise outputs """
     st.session_state[menu][analysis] = state 
 
+
 def generate_figure_and_set_state(analysis_call, key, sound):
     """
     Function to alter the session state depending on the analysis call
@@ -75,11 +247,12 @@ def generate_figure_and_set_state(analysis_call, key, sound):
         set_state('analysis_menu', key, 'call')
     # Default
     else:
-        create_figure(analysis_call, key, sound) 
+        image = create_figure2(analysis_call, key, sound) 
+        st.session_state['cached_images'][key] = image
         set_state('analysis_menu', key, 'figure')
 
 # Title and logo
-title = "Analyse comparative de sons de guitare"
+title = "Analyse comparative de sons de guitare (V 2.0)"
 col_logo, col_title = st.columns([1, 2])
 with col_title:
     st.title(title)
@@ -103,17 +276,17 @@ with sounds_io:
     expander1 = col1.expander("Enregistrer un son")
     with expander1:
         now = time.time()
-        audio = audiorecorder("Cliquez pour débuter l'enregistrement", "Stop")
+        audio_seg = audiorecorder("Cliquez pour débuter l'enregistrement", "Stop")
         recording_time  = time.time() - now
 
-    if (st.session_state['reference_recording'] != audio.raw_data) and (len(audio) > 0):
-        f = audio.export(format="wav")
-        sigarray, sr = librosa.load(f.name, sr=None)
-        new_sound = Sound((sigarray, sr))
+    if (st.session_state['reference_recording'] != audio_seg.raw_data and 
+        len(audio_seg) > 0):
+        new_sound = audioseg2guitarsound(audio_seg)
         sound_number = get_cached_next_number(st.session_state)
         st.session_state['sounds_cache'][sound_number] = new_sound
-        st.session_state['reference_recording'] = audio.raw_data
-        st.warning("Les sons enregistrés ne sont pas sauvegardés d'une session à l'autre \n vous pouvez les télécharger si vous voulez les conserver", icon="⚠️")
+        st.session_state['reference_recording'] = audio_seg.raw_data
+        st.warning(("Les sons enregistrés ne sont pas sauvegardés d'une session à l'autre \n"
+                    "vous pouvez les télécharger si vous voulez les conserver"), icon="⚠️")
     
     # File uploading
     expander = col2.expander("Téléverser un son")
@@ -122,11 +295,11 @@ with sounds_io:
                                            label_visibility='collapsed')
     
     if uploaded_file is not None and st.session_state['upload_status']:
-        if uploaded_file.name.split('.')[-1] == 'm4a':
-            if 'temp.wav' in os.listdir():
-                os.remove('temp.wav')
-            _ = AudioSegment.from_file(uploaded_file, 'm4a').split_to_mono()[0].export('temp.wav', format='wav')
-            new_sound = Sound('temp.wav')
+        if uploaded_file.name.split('.')[-1] != 'wav':
+            # Use AudioSegment for non WAV files
+            ext = uploaded_file.name.split('.')[-1]
+            audio_seg = AudioSegment.from_file(uploaded_file, ext)
+            new_sound = audioseg2guitarsound(audio_seg)
         else:
             sigarray, sr = sf.read(uploaded_file)
             new_sound = Sound((sigarray, sr))
@@ -225,7 +398,9 @@ with analysis:
 
         # Update if the number of sounds has changed
         elif len(sounds_list) != st.session_state['number_of_sounds']:
-            print(f'The number of sounds changed from {st.session_state["number_of_sounds"]} to {len(sounds_list)}')
+            # TODO: Add some logging
+            print((f'The number of sounds changed from {st.session_state["number_of_sounds"]}'
+                   f' to {len(sounds_list)}'))
             reset_analyses(analysis_names)
             # Update the stored number of sounds
             st.session_state['number_of_sounds'] = len(st.session_state['sounds_cache'])
@@ -292,19 +467,15 @@ with analysis:
                 colcheck.write('')
                 st.session_state['report_analyses'][analysis] = False
 
+            # Get the image produced by matplotlib and display it
             if st.session_state['analysis_menu'][analysis] == 'figure':
-                if st.session_state['cached_images'][analysis] is None:
-                    filename = '.'.join([analysis, 'png'])
-                    image = Image.open(os.path.join('figure_cache', filename))
-                    st.session_state['cached_images'][analysis] = image
                 image = st.session_state['cached_images'][analysis]
                 st.empty().image(image)
 
+            # Special case for interactive analyses where the function
+            # is called on each loop to update the figure
             elif st.session_state['analysis_menu'][analysis] == 'call':
-                analysis_functions[analysis](sounds_list[0])
-                filename = '.'.join([analysis, 'png'])
-                image = Image.open(os.path.join('figure_cache', filename))
-                st.session_state['cached_images'][analysis] = image
+                image = analysis_functions[analysis](sounds_list[0])
                 image = st.session_state['cached_images'][analysis]
                 st.empty().image(image)
             
@@ -324,10 +495,11 @@ with analysis:
 
         if colrep.button(label='Générer un rapport',
                          on_click=generate_report,
-                         args=(st.session_state['report_analyses'],)):
+                         args=(st.session_state['report_analyses'],
+                               st.session_state['cached_images'])):
 
             coldown.download_button(label='Télécharger le rapport',
-                                    data=open('report.docx', 'rb').read(),
+                                    data=st.session_state['report_file'].read(),
                                     file_name='report.docx')
 
     else:
