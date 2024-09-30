@@ -1,14 +1,24 @@
 import os
-import datetime
+import io
 from inspect import getdoc
 import numpy as np
-from docx import Document
-from docx.shared import Inches
 import streamlit as st
 import matplotlib.pyplot as plt
 from PIL import Image
 from guitarsounds.analysis import Plot, Signal, Sound, SoundPack
-from defined_analyses import all_report_headers
+
+def load_md(md_file):
+    with open(md_file) as f:
+        content = f.read()
+    return content
+
+def mpl2pil(fig):
+    """Convert a Matplotlib figure to a PIL Image and return it"""
+    buf = io.BytesIO()
+    fig.savefig(buf)
+    buf.seek(0)
+    img = Image.open(buf)
+    return img
 
 def get_file_number(filename):
     """ get the number in a filename """
@@ -38,7 +48,7 @@ def get_cached_next_number(session_state):
     """ 
     Find the next sound key to cache 
     """
-    numbers = list(session_state['sounds_cache'].keys())
+    numbers = list(session_state['cached_sounds'].keys())
     numbers = [int(num) for num in numbers]
     if len(numbers) > 0:
         return np.sort(numbers)[-1] +1 
@@ -49,7 +59,7 @@ def remove_cached_sound(session_state, sound_key):
     """ 
     remove a sound from the cached sounds 
     """
-    session_state['sounds_cache'].pop(sound_key)
+    session_state['cached_sounds'].pop(sound_key)
 
 def remove_log_ticks(fig):
     """
@@ -86,26 +96,84 @@ def remove_log_ticks(fig):
             ax.set_xticks(new_labels)
             ax.set_xticklabels(new_labels)
 
+def remove_log_ticksY(fig):
+    """
+    Make the ticks in log scale plots linear so its less confusing
+    """
+    for ax in fig.axes:
+        if ax.get_yscale() != 'linear':
+            labels = ax.get_yticklabels()
+            ymin, ymax = ax.get_ylim()
+            new_labels = []
+            textual_label_case = False
+            for l in labels:
+                try:
+                    _, number, exp = l.get_text().split('{')
+                    number = number.replace('^', "")
+                    exp = exp.split('}')[0]
+                    value = int(number) ** int(exp)
+                    new_labels.append(value)
+                except ValueError:
+                    nstr = l.get_text()
+                    # Fancy fancy matplotlib
+                    nstr = nstr.replace('−', '-')
+                    if '.' in nstr:
+                        new_labels.append(float(nstr))
+                    else:
+                        try:
+                            new_labels.append(int(nstr))
+                        except ValueError:
+                            textual_label_case = True
+            if textual_label_case:
+                ax.set_yticklabels(labels)
+            else:
+                new_labels = [l for l in new_labels if l > ymin]
+                new_labels = [l for l in new_labels if l < ymax]
+                ax.set_yticks(new_labels)
+                ax.set_yticklabels(new_labels)
+
 def create_figure(analysis, key, *args):
     """ Run a plotting fonction but include calls to streamlit """
     fig, ax   = plt.subplots(figsize=(7, 4.5))
     plt.sca(ax)
     analysis(*args)
     fig = plt.gcf()
-    #TODO: make less sketch
     remove_log_ticks(fig)
     fig.savefig(os.path.join('figure_cache',key), dpi=200)
 
-def generate_report(report_analyses):
-    """Génère un rapport d'analyse en format word"""
-    document = Document()
-    today = datetime.date.today()
-    document.add_heading(f"Rapport d'analyse comparative de sons de guitare", level=0)
-    document.add_heading(f'({today.day}/{today.month}/{today.year})', level=2)
-    for analysis in report_analyses:
-        if report_analyses[analysis]:
-            document.add_paragraph(all_report_headers[analysis], style='Heading 2')
-            document.add_picture(f'figure_cache/{analysis}.png',width=Inches(5))
-        document.save('report.docx')
 
+def audioseg2guitarsound(a):
+    """
+    Convert an AudioSegment object
+    to a guitarsound.Sound
+    """
+    a = a.split_to_mono()[0] 
+    norm_signal = np.array(a.get_array_of_samples())
+    norm_signal = norm_signal / a.max_possible_amplitude
+    sample_rate = a.frame_rate
+    sound = Sound((norm_signal, sample_rate))
+    return sound
 
+def state_modifying_function(args=None, state=None):
+    """
+    Test fun
+    """
+    if "image" not in state:
+        x = np.arange(10)
+        plt.plot(x, x)
+        fig = plt.gcf()
+        img = mpl2pil(fig)
+        state["image"] = img
+    return state
+
+def display_norm_help(expander):
+    expander.markdown(load_md(os.path.join('documentation', 
+                                           'normalisation1.md')))
+    expander.image(Image.open(os.path.join('documentation', 
+                                           'figures', 
+                                           'normalisation1.jpeg')), width=500)
+    expander.markdown(load_md(os.path.join('documentation', 
+                                           'normalisation2.md')))
+    expander.image(Image.open(os.path.join('documentation', 
+                                                     'figures', 
+                                                     'normalisation2.jpeg')), use_column_width=True)

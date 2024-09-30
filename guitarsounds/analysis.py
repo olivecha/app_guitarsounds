@@ -28,7 +28,7 @@ class SoundPack(object):
     """
 
     def __init__(self, *sounds, names=None, fundamentals=None, 
-                 SoundParams=None, equalize_time=True):
+                 SoundParams=None, equalize_time=True, normalize=False):
         """
         The SoundPack can be instantiated from existing Sound class instances, 
         either in a list or as multiple arguments
@@ -129,6 +129,9 @@ class SoundPack(object):
         # Sort according to fundamental
         key = np.argsort([sound.fundamental for sound in self.sounds])
         self.sounds = np.array(self.sounds)[key]
+        # normalize
+        if normalize:
+            self.normalize()
 
     def sounds_from_files(self, sound_files, names=None, fundamentals=None):
         """
@@ -184,10 +187,7 @@ class SoundPack(object):
         for sound in self.sounds:
             sound.signal = sound.signal.normalize()
             new_sounds.append(sound)
-
         self.sounds = new_sounds
-
-        return self
 
     """
     Methods for all SoundPacks
@@ -1052,7 +1052,7 @@ class Signal(object):
         self.sr = sr
         self.plot = Plot()
         self.plot.parent = self
-        self.norm_factor = None
+        self.norm_factor = 1
         self.freq_range = freq_range
 
     def time(self):
@@ -1543,6 +1543,16 @@ class Signal(object):
         normalised_signal.norm_factor = (1 / factor)
         return normalised_signal
 
+    def revert_normalize(self):
+        """
+        Revert the normalization using the stored norm factor
+        """
+        if hasattr(self, "norm_factor"):
+            original_signal = Signal(self.signal * self.norm_factor, self.sr, self.SP)
+            return original_signal
+        else:
+            return self
+
     def make_freq_bins(self):
         """
         Method to divide a signal in frequency bins using butterworth filters
@@ -1703,7 +1713,7 @@ class Plot(object):
                  self.parent.fft()[:last_index],
                  **plot_kwargs)
         plt.xlabel("Fréquence (Hz)"),
-        plt.ylabel("Amplitude (normalisée)"),
+        plt.ylabel("Amplitude (dB)"),
         plt.yscale('log')
         plt.grid('on')
 
