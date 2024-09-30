@@ -7,6 +7,11 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from guitarsounds.analysis import Plot, Signal, Sound, SoundPack
 
+def load_md(md_file):
+    with open(md_file) as f:
+        content = f.read()
+    return content
+
 def mpl2pil(fig):
     """Convert a Matplotlib figure to a PIL Image and return it"""
     buf = io.BytesIO()
@@ -43,7 +48,7 @@ def get_cached_next_number(session_state):
     """ 
     Find the next sound key to cache 
     """
-    numbers = list(session_state['sounds_cache'].keys())
+    numbers = list(session_state['cached_sounds'].keys())
     numbers = [int(num) for num in numbers]
     if len(numbers) > 0:
         return np.sort(numbers)[-1] +1 
@@ -54,7 +59,7 @@ def remove_cached_sound(session_state, sound_key):
     """ 
     remove a sound from the cached sounds 
     """
-    session_state['sounds_cache'].pop(sound_key)
+    session_state['cached_sounds'].pop(sound_key)
 
 def remove_log_ticks(fig):
     """
@@ -91,6 +96,42 @@ def remove_log_ticks(fig):
             ax.set_xticks(new_labels)
             ax.set_xticklabels(new_labels)
 
+def remove_log_ticksY(fig):
+    """
+    Make the ticks in log scale plots linear so its less confusing
+    """
+    for ax in fig.axes:
+        if ax.get_yscale() != 'linear':
+            labels = ax.get_yticklabels()
+            ymin, ymax = ax.get_ylim()
+            new_labels = []
+            textual_label_case = False
+            for l in labels:
+                try:
+                    _, number, exp = l.get_text().split('{')
+                    number = number.replace('^', "")
+                    exp = exp.split('}')[0]
+                    value = int(number) ** int(exp)
+                    new_labels.append(value)
+                except ValueError:
+                    nstr = l.get_text()
+                    # Fancy fancy matplotlib
+                    nstr = nstr.replace('−', '-')
+                    if '.' in nstr:
+                        new_labels.append(float(nstr))
+                    else:
+                        try:
+                            new_labels.append(int(nstr))
+                        except ValueError:
+                            textual_label_case = True
+            if textual_label_case:
+                ax.set_yticklabels(labels)
+            else:
+                new_labels = [l for l in new_labels if l > ymin]
+                new_labels = [l for l in new_labels if l < ymax]
+                ax.set_yticks(new_labels)
+                ax.set_yticklabels(new_labels)
+
 def create_figure(analysis, key, *args):
     """ Run a plotting fonction but include calls to streamlit """
     fig, ax   = plt.subplots(figsize=(7, 4.5))
@@ -124,3 +165,15 @@ def state_modifying_function(args=None, state=None):
         img = mpl2pil(fig)
         state["image"] = img
     return state
+
+def display_norm_help(expander):
+    expander.markdown(load_md(os.path.join('documentation', 
+                                           'normalisation1.md')))
+    expander.image(Image.open(os.path.join('documentation', 
+                                           'figures', 
+                                           'normalisation1.jpeg')), width=500)
+    expander.markdown(load_md(os.path.join('documentation', 
+                                           'normalisation2.md')))
+    expander.image(Image.open(os.path.join('documentation', 
+                                                     'figures', 
+                                                     'normalisation2.jpeg')), use_column_width=True)

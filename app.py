@@ -15,7 +15,8 @@ from guitarsounds.utils import load_wav
 from guitarsounds.analysis import Sound, Plot, SoundPack
 from app_utils import get_file_number, get_cached_next_number
 from app_utils import remove_cached_sound, audioseg2guitarsound
-from app_utils import mpl2pil, remove_log_ticks
+from app_utils import mpl2pil, remove_log_ticks, remove_log_ticksY
+from app_utils import display_norm_help
 import defined_analyses
 from defined_analyses import all_report_headers
 
@@ -30,6 +31,7 @@ def create_figure3(analysis, key, *args):
     analysis(*args)
     fig = plt.gcf()
     remove_log_ticks(fig)
+    remove_log_ticksY(fig)
     image = mpl2pil(fig)
     st.session_state['cached_images'][key] = image
 
@@ -40,6 +42,7 @@ def create_figure2(analysis, key, *args):
     analysis(*args)
     fig = plt.gcf()
     remove_log_ticks(fig)
+    remove_log_ticksY(fig)
     image = mpl2pil(fig)
     return image
 
@@ -196,6 +199,13 @@ defined_analyses.single_sound_analysis_functions['fft'] = variable_fft_context
 # Session setup
 # """
 
+# Print an incremented number at each loop to help
+# debugging other print statements
+if 'loop_no' not in st.session_state:
+    st.session_state['loop_no'] = 0
+print('GUI Loop number:', st.session_state['loop_no'])
+st.session_state['loop_no'] += 1
+
 if "report_file" not in st.session_state:
     st.session_state["report_file"] = None
 
@@ -203,16 +213,18 @@ if "report_file" not in st.session_state:
 if 'upload_status' not in st.session_state:
     st.session_state['upload_status'] = None
 
-# Cache containing all the loaded sounds
-if 'sounds_cache' not in st.session_state:
-    st.session_state['sounds_cache'] = {}
+if 'sounds_were_normalized' not in st.session_state:
+    st.session_state['sounds_were_normalized'] = False
+if 'num_of_norm_sounds' not in st.session_state:
+    st.session_state['num_of_norm_sounds'] = 0
+
+# Normalize multiple sounds
+if 'norm_soundpack' not in st.session_state:
+    st.session_state['norm_soundpack'] = False
 
 # Flag for the analysis output
 if 'analysis_output' not in st.session_state:
     st.session_state['analysis_output'] = {}
-
-if 'reference_recording' not in st.session_state:
-    st.session_state['reference_recording'] = ''
 
 if 'cached_logo' not in st.session_state:
     image = Image.open('documentation/figures/logo.png')
@@ -226,6 +238,10 @@ def update_file_load_status():
     st.session_state['upload_status'] = True
 
 def reset_analyses(analysis_names):
+    """ 
+    Function that resets the value of the 
+    analyses to their default state 
+    """
     st.session_state['analysis_menu'] = {name:None for name in analysis_names}
     st.session_state['report_analyses'] = {name:False for name in analysis_names}
     st.session_state['cached_images'] = {name:None for name in analysis_names}
@@ -261,57 +277,85 @@ with col_logo:
     st.write('')
     st.image(st.session_state['cached_logo'], use_column_width='always')
 
+# Different tabs of the application
 sounds_io, analysis, help_tab, about = st.tabs(["Ajouter des sons", 
                                                 "Analyser/Comparer des sons",
                                                 "Aide",
                                                 "À Propos"])
 
+#"""
 # First tab (Input / Output)
-with sounds_io: 
-    col1, col2 = st.columns([1, 1])
-    col1.write('')
-    col2.write('')
+#"""
+# Sound input state variables
+# Cache all updated sounds to keep between
+# session loops
+if 'cached_sounds' not in st.session_state:
+    st.session_state['cached_sounds'] = {}
+# Create a reference recording to store temporarely
+# recorded sounds so we add a new sound only if the
+# recorded sound has changed
+if 'reference_recording' not in st.session_state:
+    st.session_state['reference_recording'] = ''
+# Variables to watch if the normalize checkbox was
+# toggled which restart the analyses
+if 'norm_bool' not in st.session_state:
+    st.session_state['norm_bool'] = False
+if 'norm_toggle' not in st.session_state:
+    st.session_state['norm_toggle'] = False
 
+with sounds_io: 
+    # Recording and uploading columns
+    record_col, upload_col = st.columns([1, 1])
+    record_col.write('')
+    upload_col.write('')
     # Audio recording sound loading
-    expander1 = col1.expander("Enregistrer un son")
-    with expander1:
+    record_context = record_col.expander("Enregistrer un son")
+    with record_context:
         now = time.time()
         audio_seg = audiorecorder("Cliquez pour débuter l'enregistrement", "Stop")
         recording_time  = time.time() - now
+        print("Recorded audio segment length:", len(audio_seg))
 
+    # If the recorded sound has changed and is not empty
     if (st.session_state['reference_recording'] != audio_seg.raw_data and 
         len(audio_seg) > 0):
         new_sound = audioseg2guitarsound(audio_seg)
         sound_number = get_cached_next_number(st.session_state)
-        st.session_state['sounds_cache'][sound_number] = new_sound
+        st.session_state['cached_sounds'][sound_number] = new_sound
         st.session_state['reference_recording'] = audio_seg.raw_data
         st.warning(("Les sons enregistrés ne sont pas sauvegardés d'une session à l'autre \n"
                     "vous pouvez les télécharger si vous voulez les conserver"), icon="⚠️")
     
     # File uploading
-    expander = col2.expander("Téléverser un son")
+    expander = upload_col.expander("Téléverser un son")
     uploaded_file = expander.file_uploader("Choose a file", 
                                            on_change=update_file_load_status,
                                            label_visibility='collapsed')
     
     if uploaded_file is not None and st.session_state['upload_status']:
-        if uploaded_file.name.split('.')[-1] != 'wav':
-            # Use AudioSegment for non WAV files
-            ext = uploaded_file.name.split('.')[-1]
-            audio_seg = AudioSegment.from_file(uploaded_file, ext)
-            new_sound = audioseg2guitarsound(audio_seg)
-        else:
-            sigarray, sr = sf.read(uploaded_file)
-            new_sound = Sound((sigarray, sr))
+        # Use AudioSegment for non WAV files
+        ext = uploaded_file.name.split('.')[-1]
+        audio_seg = AudioSegment.from_file(uploaded_file, ext)
+        new_sound = audioseg2guitarsound(audio_seg)
         sound_number = get_cached_next_number(st.session_state)
-        st.session_state['sounds_cache'][sound_number] = new_sound
+        st.session_state['cached_sounds'][sound_number] = new_sound
         st.session_state['upload_status'] = False
+
+    # Context to choose if the sounds are normalized
+    norm_soundpacks = st.checkbox("Normaliser les sons multiples", 
+                                      value=False)
+    if norm_soundpacks != st.session_state['norm_bool']:
+        st.session_state['norm_toggle'] = True
+        st.session_state['norm_bool'] = norm_soundpacks
+    # Help message to display the normalization help
+    norm_help_expander = st.expander("C'est quoi ?")
+    display_norm_help(norm_help_expander)
     
     # Display the list of loaded sounds
     col3, col4, col5, colx = st.columns([2, 2.5, 0.5, 0.5])
     names = []
-    for sound_number in st.session_state['sounds_cache']:
-        sound = st.session_state['sounds_cache'][sound_number]
+    for sound_number in st.session_state['cached_sounds']:
+        sound = st.session_state['cached_sounds'][sound_number]
         colx.write(' ')
         colx.button(label=':wastebasket:', 
                     key=f'del_{sound_number}',
@@ -336,43 +380,44 @@ with sounds_io:
                              key=f"download_{sound_number}",
                              file_name=f'{name}.wav',)
 
-    # If more than one sound create soundpack item
-    if len(st.session_state['sounds_cache']) > 1:
-        st.session_state['soundpack'] = None
-
+# """
 # Analysis Tab
+# """
+# If the number of sounds or their value changes 
+# We reset the anaylses to allow displaying outputs
+# for the new sounds
+# Define the number of sounds item
+if 'number_of_sounds' not in st.session_state:
+    st.session_state['number_of_sounds'] = 0
+# Store the values of the sound signals in the session state
+if 'current_sounds' not in st.session_state:
+    st.session_state['current_sounds'] = [np.zeros(10)]
+
 with analysis:
-    # Define the number of sounds item
-    if 'number_of_sounds' not in st.session_state:
-        st.session_state['number_of_sounds'] = 0
-    if 'current_sounds' not in st.session_state:
-        st.session_state['current_sounds'] = [np.zeros(10)]
-    # columns to format the output
-    colbut, colhelp, colcheck = st.columns([3.5, 0.5, 1.0])
-    # Get the dictionnary containing all the uploaded sounds
-    sound_cache = st.session_state['sounds_cache']
     # Get all the sounds in a list
-    sounds_list = [sound_cache[name] for name in sound_cache]
-    # if the soundpack key exists, define a soundpack
-    if 'soundpack' in st.session_state:
-        if st.session_state['soundpack'] is None:
-            st.session_state['soundpack'] = SoundPack(sounds_list, names=names)
+    sounds_list = list(st.session_state['cached_sounds'].values())
+    # if there are more than one sound, define a soundpack
+    if len(sounds_list) > 1:
+        analysis_spack = SoundPack(sounds_list,
+                                   names=names,
+                                   normalize=norm_soundpacks)
+    else:
+        analysis_spack = None
 
     if len(sounds_list) > 0:
-        # Write the headers
+        # columns to format the output
+        colbut, colhelp, colcheck = st.columns([3.5, 0.5, 1.0])
+        # Write the columns headers
         colbut.write('Analyse')
         colhelp.write('Aide')
         colcheck.write('Rapport')
 
+        # TODO: do this from an external function
         # Load the analyses when looking only at a single sound
         if len(sounds_list) == 1:
-            # {analysis keys: name strings}
             analysis_names = defined_analyses.single_sound_analysis_names
-            # {analysis keys: callables on the sounds}
             analysis_functions = defined_analyses.single_sound_analysis_functions
-            # {analysis keys: loaded markdown help file}
             analysis_helps = defined_analyses.single_sound_analysis_help
-            # {analysis keys: loaded help figure}
             analysis_figures = defined_analyses.single_sound_analysis_help_figures
 
         # Load the analyses to compare two sounds
@@ -394,7 +439,13 @@ with analysis:
         if 'analysis_menu' not in st.session_state:
             # Only occurs when the first sound is loaded
             reset_analyses(analysis_names)
+            # The number of cached sounds must match the number of loaded
+            # sounds as this is the first time the analysis menu is loaded
             st.session_state['number_of_sounds'] = len(sounds_list)
+        # Restart the analyses if the normalization was toggled
+        if st.session_state['norm_toggle']:
+            reset_analyses(analysis_names)
+            st.session_state['norm_toggle'] = False
 
         # Update if the number of sounds has changed
         elif len(sounds_list) != st.session_state['number_of_sounds']:
@@ -403,28 +454,13 @@ with analysis:
                    f' to {len(sounds_list)}'))
             reset_analyses(analysis_names)
             # Update the stored number of sounds
-            st.session_state['number_of_sounds'] = len(st.session_state['sounds_cache'])
+            st.session_state['number_of_sounds'] = len(st.session_state['cached_sounds'])
 
-        # Update if the number of sounds is the same but they changed
-        else:
-            sounds_were_changed = False
-            new_signals = [sound.signal.signal for sound in sounds_list]
-            for previous_signal, new_signal in zip(st.session_state['current_sounds'], new_signals):
-                if len(previous_signal) != len(new_signal):
-                    sounds_were_changed = True
-                    break
-                elif (previous_signal != new_signal).any():
-                    sounds_were_changed = True
-                    break
-            if sounds_were_changed:
-                print('The number of sounds is the same but they changed so the analyses were restarted')
-                reset_analyses(analysis_names)
-                st.session_state['current_sounds'] = [s.signal.signal for s in sounds_list]
-
+        # For each analysis defined according to the number of uploaded sounds
         for analysis in analysis_names:
             colbut, colhelp, colcheck = st.columns([3.5, 0.5, 1.0])
 
-            if len(sounds_list) == 1:
+            if analysis_spack is None:
                 colbut.button(label=analysis_names[analysis],
                               on_click=generate_figure_and_set_state,
                               use_container_width=True,
@@ -432,14 +468,12 @@ with analysis:
                                     analysis, 
                                     sounds_list[0]))
             else:
-                pack = st.session_state['soundpack']
                 colbut.button(label=analysis_names[analysis],
                               on_click=generate_figure_and_set_state,
                               use_container_width=True,
                               args=(analysis_functions[analysis], 
                                     analysis, 
-                                    pack))
-
+                                    analysis_spack))
 
             colhelp.button(label=':question:',
                            key=analysis,
@@ -519,5 +553,4 @@ with about:
     with open(os.path.join('documentation', 'about.md')) as abt_file:
         md_string = abt_file.read()
     st.markdown(md_string)
-    
 

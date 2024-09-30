@@ -20,7 +20,7 @@ def plot_with_soundpack(fun):
     """ Call the analyses with soundpack as argument """
     def new_fun(soundpack):
         for sound in soundpack.sounds:
-            fun(sound.signal.normalize().plot, label=sound.name)
+            fun(sound.signal.plot, label=sound.name)
         plt.gca().legend()
     return new_fun
 
