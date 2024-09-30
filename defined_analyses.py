@@ -10,12 +10,13 @@ from scipy.signal import spectrogram
 import app_utils
 
 
+# Inlined decorator to call class methods as separate functions
 def plot_with_sound(fun):
     """ Call the analyses with sound as argument """
     def new_fun(sound):
         fun(sound.signal.plot)
     return new_fun
-
+# Inlined decorator to call class methods as separate functions (SoundPacks)
 def plot_with_soundpack(fun):
     """ Call the analyses with soundpack as argument """
     def new_fun(soundpack):
@@ -23,11 +24,6 @@ def plot_with_soundpack(fun):
             fun(sound.signal.plot, label=sound.name)
         plt.gca().legend()
     return new_fun
-
-def load_md(md_file):
-    with open(md_file) as f:
-        content = f.read()
-    return content
 
 def streamlit_listen_freq_bins(sound):
     """ 
@@ -198,17 +194,17 @@ single_sound_analysis_functions = {'signal':None,
                                    'plotband':Sound.plot_freq_bins,
                                    'histband':Sound.bin_hist}
 
-single_sound_analysis_help = {'signal':load_md(os.path.join('documentation', 'signal.md')),
-                              'envelope':load_md(os.path.join('documentation', 'envelope.md')),
-                              'logenv':load_md(os.path.join('documentation', 'logenvelope.md')),
-                              'fft':load_md(os.path.join('documentation', 'fft.md')),
-                              'ffthist':load_md(os.path.join('documentation', 'binfft.md')),
-                              'peaks':load_md(os.path.join('documentation', 'peaks.md')),                              
-                              'specgram':load_md(os.path.join('documentation', 'specgram.md')),
-                              'timedamp':load_md(os.path.join('documentation', 'timedamp.md')), 
-                              'listenband':load_md(os.path.join('documentation', 'listenband.md')), 
-                              'plotband':load_md(os.path.join('documentation', 'plotband.md')), 
-                              'histband':load_md(os.path.join('documentation', 'histband.md'))} 
+single_sound_analysis_help = {'signal':app_utils.load_md(os.path.join('documentation', 'signal.md')),
+                              'envelope':app_utils.load_md(os.path.join('documentation', 'envelope.md')),
+                              'logenv':app_utils.load_md(os.path.join('documentation', 'logenvelope.md')),
+                              'fft':app_utils.load_md(os.path.join('documentation', 'fft.md')),
+                              'ffthist':app_utils.load_md(os.path.join('documentation', 'binfft.md')),
+                              'peaks':app_utils.load_md(os.path.join('documentation', 'peaks.md')),                              
+                              'specgram':app_utils.load_md(os.path.join('documentation', 'specgram.md')),
+                              'timedamp':app_utils.load_md(os.path.join('documentation', 'timedamp.md')), 
+                              'listenband':app_utils.load_md(os.path.join('documentation', 'listenband.md')), 
+                              'plotband':app_utils.load_md(os.path.join('documentation', 'plotband.md')), 
+                              'histband':app_utils.load_md(os.path.join('documentation', 'histband.md'))} 
 
 single_sound_analysis_help_figures = {'signal':Image.open(os.path.join('documentation', 'figures', 'signal.png')),
                                       'envelope':Image.open(os.path.join('documentation', 'figures', 'envelope.png')),
@@ -252,18 +248,18 @@ dual_sound_analysis_functions = {'msignal':plot_with_soundpack(Plot.signal),
                                  'binhist': SoundPack.bin_power_hist,
                                  'fbinplot': SoundPack.freq_bin_plot,}
 
-dual_sound_analysis_help = {'msignal':load_md(os.path.join('documentation', 'signal.md')),                             
-                            'menvelope':load_md(os.path.join('documentation', 'envelope.md')),                             
-                            'mlogenv':load_md(os.path.join('documentation', 'logenvelope.md')),
-                            'mfft':load_md(os.path.join('documentation', 'fft.md')),
-                            'mffthist':load_md(os.path.join('documentation', 'binfft.md')),
-                            'peakcomp':load_md(os.path.join('documentation', 'peakcomp.md')),
-                            'fftmirror':load_md(os.path.join('documentation', 'fftmirror.md')),
-                            'fftdiff':load_md(os.path.join('documentation', 'fftdiff.md')),
-							'specdiff':load_md(os.path.join('documentation','specdiff.md')),
-                            'binpower':load_md(os.path.join('documentation', 'binpower.md')),
-                            'binhist':load_md(os.path.join('documentation', 'histband.md')),
-                            'fbinplot':load_md(os.path.join('documentation', 'fbinplot.md')),}
+dual_sound_analysis_help = {'msignal':app_utils.load_md(os.path.join('documentation', 'signal.md')),                             
+                            'menvelope':app_utils.load_md(os.path.join('documentation', 'envelope.md')),                             
+                            'mlogenv':app_utils.load_md(os.path.join('documentation', 'logenvelope.md')),
+                            'mfft':app_utils.load_md(os.path.join('documentation', 'fft.md')),
+                            'mffthist':app_utils.load_md(os.path.join('documentation', 'binfft.md')),
+                            'peakcomp':app_utils.load_md(os.path.join('documentation', 'peakcomp.md')),
+                            'fftmirror':app_utils.load_md(os.path.join('documentation', 'fftmirror.md')),
+                            'fftdiff':app_utils.load_md(os.path.join('documentation', 'fftdiff.md')),
+							'specdiff':app_utils.load_md(os.path.join('documentation','specdiff.md')),
+                            'binpower':app_utils.load_md(os.path.join('documentation', 'binpower.md')),
+                            'binhist':app_utils.load_md(os.path.join('documentation', 'histband.md')),
+                            'fbinplot':app_utils.load_md(os.path.join('documentation', 'fbinplot.md')),}
 
 dual_sound_analysis_help_figures = {'msignal':Image.open(os.path.join('documentation', 'figures', 'signal.png')),
                                     'menvelope':Image.open(os.path.join('documentation', 'figures', 'envelope.png')),
@@ -301,14 +297,14 @@ multi_sound_analysis_functions  = {'msignal':plot_with_soundpack(Plot.signal),
                                    'mbinpower':SoundPack.integral_plot,
                                    'mbinhist':SoundPack.bin_power_hist,}
 
-multi_sound_analysis_help = {'msignal':load_md(os.path.join('documentation', 'signal.md')),                             
-                             'menvelope':load_md(os.path.join('documentation', 'envelope.md')),                             
-                             'mlogenv':load_md(os.path.join('documentation', 'logenvelope.md')),
-                             'mfft':load_md(os.path.join('documentation', 'fft.md')),
-                             'mffthist':load_md(os.path.join('documentation', 'binfft.md')),
-                             'mfbinplot':load_md(os.path.join('documentation', 'fbinplot.md')),
-                             'mbinpower':load_md(os.path.join('documentation', 'binpower.md')),
-                             'mbinhist':load_md(os.path.join('documentation', 'histband.md')),}
+multi_sound_analysis_help = {'msignal':app_utils.load_md(os.path.join('documentation', 'signal.md')),                             
+                             'menvelope':app_utils.load_md(os.path.join('documentation', 'envelope.md')),                             
+                             'mlogenv':app_utils.load_md(os.path.join('documentation', 'logenvelope.md')),
+                             'mfft':app_utils.load_md(os.path.join('documentation', 'fft.md')),
+                             'mffthist':app_utils.load_md(os.path.join('documentation', 'binfft.md')),
+                             'mfbinplot':app_utils.load_md(os.path.join('documentation', 'fbinplot.md')),
+                             'mbinpower':app_utils.load_md(os.path.join('documentation', 'binpower.md')),
+                             'mbinhist':app_utils.load_md(os.path.join('documentation', 'histband.md')),}
 
 multi_sound_analysis_help_figures = {'msignal':Image.open(os.path.join('documentation', 'figures', 'signal.png')),
                                      'menvelope':Image.open(os.path.join('documentation', 'figures', 'envelope.png')),

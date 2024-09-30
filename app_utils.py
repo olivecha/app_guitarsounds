@@ -8,6 +8,7 @@ from PIL import Image
 from guitarsounds.analysis import Plot, Signal, Sound, SoundPack
 
 def load_md(md_file):
+    """ Load the content of a (text) markdown file and return a string """
     with open(md_file) as f:
         content = f.read()
     return content
@@ -19,30 +20,6 @@ def mpl2pil(fig):
     buf.seek(0)
     img = Image.open(buf)
     return img
-
-def get_file_number(filename):
-    """ get the number in a filename """
-    numbers = []
-    for char in filename:
-        try:
-            numbers.append(int(char))
-        except:
-            pass 
-    numbers = [str(num) for num in numbers]
-    return int(''.join(numbers))
-
-def get_temp_sound_number():
-    """ 
-    Get the current temp sound number 
-    """
-    numbers = []
-    for filename in os.listdir('temp_sounds'):
-        numbers.append(get_file_number(filename))
-
-    if len(numbers) == 0:
-        return 0
-    else:
-        return np.sort(numbers)[-1] + 1
 
 def get_cached_next_number(session_state):
     """ 
@@ -132,16 +109,6 @@ def remove_log_ticksY(fig):
                 ax.set_yticks(new_labels)
                 ax.set_yticklabels(new_labels)
 
-def create_figure(analysis, key, *args):
-    """ Run a plotting fonction but include calls to streamlit """
-    fig, ax   = plt.subplots(figsize=(7, 4.5))
-    plt.sca(ax)
-    analysis(*args)
-    fig = plt.gcf()
-    remove_log_ticks(fig)
-    fig.savefig(os.path.join('figure_cache',key), dpi=200)
-
-
 def audioseg2guitarsound(a):
     """
     Convert an AudioSegment object
@@ -153,18 +120,6 @@ def audioseg2guitarsound(a):
     sample_rate = a.frame_rate
     sound = Sound((norm_signal, sample_rate))
     return sound
-
-def state_modifying_function(args=None, state=None):
-    """
-    Test fun
-    """
-    if "image" not in state:
-        x = np.arange(10)
-        plt.plot(x, x)
-        fig = plt.gcf()
-        img = mpl2pil(fig)
-        state["image"] = img
-    return state
 
 def display_norm_help(expander):
     expander.markdown(load_md(os.path.join('documentation', 
