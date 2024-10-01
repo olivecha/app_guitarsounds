@@ -1,4 +1,5 @@
 import os, io
+import pickle
 import datetime
 import numpy as np
 import streamlit as st
@@ -15,6 +16,31 @@ from app_utils import get_cached_next_number, display_norm_help
 from app_utils import remove_cached_sound, audioseg2guitarsound
 from app_utils import mpl2pil, remove_log_ticks, remove_log_ticksY
 
+
+def save_state(obj):
+    """
+    Takes the st.session state as an argument 
+    and saves the user defined attributes to a pickle file
+    """
+    session_state_keys = ['upload_status',
+                          'analysis_menu',
+                          'report_analyses',
+                          #'cached_images',
+                          "report_file",
+                          'loop_no',
+                          'cached_logo',
+                          'number_of_sounds',
+                          'current_sounds',
+                          'cached_sounds',
+                          'reference_recording',
+                          'norm_bool',
+                          'norm_toggle']
+    print('Saving state')
+    state = {}
+    for ky in session_state_keys:
+        state[ky] = obj[ky]
+    with open('/Users/olivier/Desktop/session_state.pkl', 'wb') as pfile:
+        pickle.dump(state, pfile)
 
 # """
 # Functions modifying the session state 
@@ -305,6 +331,9 @@ sounds_io, analysis, help_tab, about = st.tabs(["Ajouter des sons",
 # First tab (Input / Output)
 #"""
 with sounds_io: 
+    # Command to save the current session state to recreate it in
+    # a testing environment
+    #save_state(st.session_state)
     # Recording and uploading columns
     record_col, upload_col = st.columns([1, 1])
     # Add some whitespace
