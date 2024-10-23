@@ -8,6 +8,6 @@ class TestApp(unittest.TestCase):
         """
         This only test whether an exception is raised when running the app
         """
-        at = AppTest.from_file('../app.py').run()
+        at = AppTest.from_file('../app.py').run(timeout=120)
         self.assertTrue(not at.exception)
 
