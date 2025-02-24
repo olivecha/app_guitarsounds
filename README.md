@@ -37,6 +37,12 @@ Et puis en lançant l'outil de ligne de commande `pytest` dans le répertoire du
 pytest
 ```
 
+## Contribution
+
+Un document détaillant le fonctionnement de l'application afin de contribuer à son maintient ou son développement est disponible [ici](https://github.com/olivecha/app_guitarsounds/wiki/Guide-de-contribution-et-d%C3%A9veloppement).
+
+## Avancement Technologique
+
 
 
 
