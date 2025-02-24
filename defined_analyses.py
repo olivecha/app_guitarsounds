@@ -99,6 +99,17 @@ def variable_fft_plot(sound, fmin, fmax, c):
         ax.set_xlim(fmin, fmax)
     else:
         c.warning('La fréquence min doit être plus petite que la fréquence max')
+
+def variable_dual_fft_plot(soundpack, fmin, fmax, c):
+    """
+    Plot the FFT  with custom frequency range
+    """
+    for s in soundpack.sounds:
+        s.plot.fft()
+    if fmin < fmax:
+        ax.set_xlim(fmin, fmax)
+    else:
+        c.warning('La fréquence min doit être plus petite que la fréquence max')
     
     
 def sound_spectrogram(sound):

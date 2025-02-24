@@ -21,6 +21,9 @@ def save_state(obj):
     """
     Takes the st.session state as an argument 
     and saves the user defined attributes to a pickle file
+    (This is used to reload the application from a previous state
+     manually to try and test the analyses without running the
+     graphical interface, work in progress)
     """
     session_state_keys = ['upload_status',
                           'analysis_menu',
@@ -71,7 +74,7 @@ def generate_figure_and_set_state(analysis_call, key, sound):
     if key == 'listenband':
         st.session_state['analysis_menu'][key] = 'listen'
     # Case for interactive analyses
-    elif key in ['signal', 'envelope', 'logenv', 'fft']:
+    elif key in ['signal', 'envelope', 'logenv', 'fft', 'mfft']:
         st.session_state['analysis_menu'][key] = 'call'
     # Default
     else:
@@ -242,6 +245,37 @@ def variable_fft_context(sound):
                              sound)
         st.session_state['cached_images']['fft'] = img
 
+def variable_dual_fft_context(sounds):
+    """
+    Menu for the dual fft plot
+    """
+    c = st.container()
+    colmin, colmax, colgo = c.columns([2, 2, 1])
+    lower_bound = colmin.number_input(label="Fréquence min", 
+                                      min_value=0)
+    upper_bound = colmax.number_input(label="Fréquence max", 
+                                      max_value=3000,
+                                      value=2000)
+    colgo.write(" ")
+    colgo.write(" ")
+    colgo.button(label="Actualiser", 
+                 on_click=create_figure3, 
+                 key='Actualiser fft',
+                 args=(defined_analyses.variable_dual_fft_plot, 
+                       'mfft', 
+                        sounds,
+                        lower_bound,
+                        upper_bound,
+                        c))
+
+    if st.session_state['cached_images']['mfft'] is None:
+        print('Image not yet cached in session state')
+        fun = defined_analyses.plot_with_soundpack(defined_analyses.Plot.fft)
+        img = create_figure2(fun,
+                             'mfft',
+                             sounds)
+        st.session_state['cached_images']['mfft'] = img
+
 # """
 # Update the defined analyses with the locally defined functions
 # """
@@ -249,6 +283,7 @@ defined_analyses.single_sound_analysis_functions['signal'] = variable_signal_con
 defined_analyses.single_sound_analysis_functions['envelope'] = variable_envelope_context
 defined_analyses.single_sound_analysis_functions['logenv'] = variable_logenv_context
 defined_analyses.single_sound_analysis_functions['fft'] = variable_fft_context
+defined_analyses.dual_sound_analysis_functions['mfft'] = variable_dual_fft_context
 
 # """ 
 # Session setup
@@ -542,7 +577,10 @@ with analysis:
             # Special case for interactive analyses where the function
             # is called on each loop to update the figure
             elif st.session_state['analysis_menu'][analysis] == 'call':
-                image = analysis_functions[analysis](sounds_list[0])
+                if analysis in ['mfft']:
+                    image = analysis_functions[analysis](analysis_spack)
+                else:
+                    image = analysis_functions[analysis](sounds_list[0])
                 image = st.session_state['cached_images'][analysis]
                 st.empty().image(image)
             
