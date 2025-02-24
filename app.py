@@ -345,6 +345,12 @@ if 'norm_bool' not in st.session_state:
 if 'norm_toggle' not in st.session_state:
     # If the button state changed this becomes true
     st.session_state['norm_toggle'] = False
+# Variables to watch the sound trimming toggle
+# analyses are restarted when the check is toggled
+if 'trim_bool' not in st.session_state:
+    st.session_state['trim_bool'] = False
+if 'trim_toggle' not in st.session_state:
+    st.session_state['trim_toggle'] = False
 
 
 # Title and logo
@@ -408,6 +414,13 @@ with sounds_io:
         # Set the upload status to False so the sound is not added
         # after each loop
         st.session_state['upload_status'] = False
+
+    # Context to choose if the sounds are trimmed
+    #trim_sounds = st.checkbox("Tronquer la fin des sons",
+    #                          value=False)
+    #if trim_sounds != st.session_state['trim_bool']:
+    #    st.session_state['trim_toggle'] = True
+    #    st.session_state['trim_bool'] = trim_sounds
 
     # Context to choose if the sounds are normalized
     norm_soundpacks = st.checkbox("Normaliser les sons multiples", 
@@ -503,6 +516,9 @@ with analysis:
         if st.session_state['norm_toggle']:
             reset_analyses(analysis_names)
             st.session_state['norm_toggle'] = False
+        if st.session_state['trim_toggle']:
+            reset_analyses(analysis_names)
+            st.session_state['trim_toggle'] = False
 
         # Update if the number of sounds has changed
         elif len(sounds_list) != st.session_state['number_of_sounds']:
