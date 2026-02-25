@@ -214,6 +214,7 @@ def variable_logenv_context(sound):
         img = create_figure2(fun,
                              'logenv',
                              sound)
+        st.session_state['cached_images']['logenv'] = img
 
 def variable_fft_context(sound):
     """
@@ -407,7 +408,7 @@ with sounds_io:
     if uploaded_file is not None and st.session_state['upload_status']:
         # Always process the audio files with AudioSegment
         ext = uploaded_file.name.split('.')[-1]
-        audio_seg = AudioSegment.from_file(uploaded_file, ext)
+        audio_seg = AudioSegment.from_file(uploaded_file, format=ext)
         new_sound = audioseg2guitarsound(audio_seg)
         sound_number = get_cached_next_number(st.session_state)
         st.session_state['cached_sounds'][sound_number] = new_sound
