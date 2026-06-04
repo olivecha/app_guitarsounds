@@ -34,6 +34,7 @@
     <button class="tab-btn" data-tab="rapport">
       Rapport <span id="report-tab-badge" class="tab-badge" style="display:none"></span>
     </button>
+    <button class="tab-btn" data-tab="fourier">Transformée de Fourier</button>
     <button class="tab-btn" data-tab="aide">Aide</button>
     <button class="tab-btn" data-tab="apropos">À Propos</button>
   </nav>
@@ -52,6 +53,33 @@
       <!-- populated by ui/reportPanel.js -->
     </section>
 
+    <section id="tab-fourier" class="tab-panel">
+      <div class="fourier-tab">
+        <div class="fourier-controls">
+          <div class="fourier-control-row">
+            <label for="fundamental">Fondamentale (Hz) :</label>
+            <input type="number" id="fundamental" value="110" min="80" max="330">
+          </div>
+          <div class="fourier-control-row" id="listenContainer">
+            <span>Écouter le son :</span>
+          </div>
+        </div>
+        <div class="fourier-plots">
+          <canvas id="canvas"  width="540" height="308"></canvas>
+          <canvas id="canvas2" width="540" height="308"></canvas>
+        </div>
+        <hr class="fourier-divider" />
+        <h4 class="fourier-subhead">Fonctionnement</h4>
+        <ul class="fourier-list">
+          <li>La fréquence fondamentale du son peut être modifiée. Une fondamentale plus élevée produira un son plus aigu et vice-versa. La fondamentale dicte aussi la distance entre les pics, donc moins de fréquences partielles (harmoniques) seront audibles pour un son ayant une fondamentale plus élevée.</li>
+          <li>L'amplitude des points orange foncés sur les pics de la transformée de Fourier peut être changée afin de visualiser comment la courbe du signal est modifiée. Le son produit par le signal est aussi mis à jour après chaque changement d'amplitude d'un pic.</li>
+          <li>Les points de la même couleur que la courbe peuvent être déplacés afin d'ajouter une fréquence partielle au son. Lorsque la couleur du point passe au vert, cela veut dire qu'il est pris en compte pour le tracé de la courbe du signal et le son produit.</li>
+        </ul>
+        <h4 class="fourier-subhead">Limitations</h4>
+        <p class="fourier-text">Cette application est un outil pédagogique permettant de visualiser la relation entre un signal dans le temps (gauche) et sa transformée de Fourier (droite) qui indique la puissance du signal à chaque fréquence. Les valeurs des deux graphiques sont altérées comparativement au vrai signal afin de permettre de mieux visualiser comment des changements d'amplitude dans la transformée de Fourier affectent la courbe et le son du signal.</p>
+      </div>
+    </section>
+
     <section id="tab-aide" class="tab-panel">
       <div id="aide-content" class="markdown-body">Chargement…</div>
     </section>
@@ -63,5 +91,7 @@
 
   <!-- ES module entry point (loaded after CDN globals are ready) -->
   <script type="module" src="src/main.js"></script>
+  <!-- Fourier interactive (deferred so canvas elements exist when it runs) -->
+  <script defer src="Fourier-learn/fft_learn.js"></script>
 </body>
 </html>

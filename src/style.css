@@ -102,6 +102,81 @@ body {
   display: block;
 }
 
+/* ── Fourier CSS vars (read by fft_learn.js via getComputedStyle) ── */
+:root {
+  --plot-line-color:       #FF4B4B;
+  --backgroud-color:       #ffffff;
+  --annotation-color:      #31333F;
+  --annotation-color-dark: #808495;
+  --major-point-color:     #e07b30;
+  --minor-point-color:     #4a7c3f;
+}
+
+/* ── Fourier tab layout ───────────────────── */
+.fourier-tab { max-width: 1200px; }
+
+.fourier-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.fourier-control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+}
+.fourier-control-row input[type="number"] {
+  font-family: var(--font);
+  font-size: 1rem;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 88px;
+}
+.fourier-control-row audio {
+  height: 36px;
+}
+.fourier-plots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.fourier-plots canvas {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 100%;
+}
+.fourier-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 0 20px;
+}
+.fourier-subhead {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+.fourier-list {
+  margin: 0 0 20px 20px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.fourier-list li { padding: 3px 0; }
+.fourier-text {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 800px;
+}
+
 /* ── Placeholder ─────────────────────────── */
 .placeholder-text {
   color: var(--text-muted);
