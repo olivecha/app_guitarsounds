@@ -1,9 +1,0 @@
-streamlit
-numpy
-pillow
-python-docx
-matplotlib
-soundfile
-pydub
-streamlit-audiorecorder
-scipy

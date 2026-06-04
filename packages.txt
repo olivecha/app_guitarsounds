@@ -1,4 +1,0 @@
-portaudio19-dev 
-python3-pyaudio
-alsa-utils 
-ffmpeg
