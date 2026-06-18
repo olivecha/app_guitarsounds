@@ -362,6 +362,13 @@ const SNAPSHOT_WIDTH = 900;
 const DESKTOP_PLOT_SCALE = 1.2;
 const MOBILE_PLOT_SCALE  = 2.2;
 
+// Multi-panel plots (3×2 bin grids, the 2-panel spectral diff) are cramped, so big
+// tick fonts overlap. Keep their tick/axis text near base size, but still enlarge
+// the legend and panel titles so those stay readable (TODO_2 #1, #3, #5).
+const SUBPLOT_TEXT_FACTOR   = 1.0;
+const SUBPLOT_LEGEND_FACTOR = 1.9;
+const SUBPLOT_ANNOT_FACTOR  = 1.3;
+
 // Incremented on every render so an in-flight async (mobile) snapshot can detect
 // that a newer render has superseded it and skip appending stale content.
 let _renderGen = 0;
@@ -379,21 +386,32 @@ function _clearChartArea() {
   return area;
 }
 
-// Scale a layout's font, margins and annotation fonts so larger text stays legible
-// and doesn't get clipped (annotations are the subplot titles in the bin plots).
-function _scaledLayout(layout, factor) {
+// True for plots with several panels (a grid, or a manual second axis), which are
+// space-constrained and need smaller tick text than single-panel plots.
+function _isMultiPanel(layout) {
+  if (layout.grid) return true;
+  return Object.keys(layout).some(k => /^(xaxis|yaxis)([2-9]|\d\d)$/.test(k));
+}
+
+// Scale a layout's fonts, margins, legend and annotation (panel-title) fonts.
+// `f.text` drives ticks/axis titles/margins; `f.legend` and `f.annot` are separate
+// so the legend and panel titles can stay readable even when ticks are kept small.
+function _scaledLayout(layout, f) {
   const font = layout.font   ?? PLOTLY_LAYOUT_BASE.font;
   const m    = layout.margin ?? PLOTLY_LAYOUT_BASE.margin;
+  const base = font.size ?? 13;
   const out = {
     ...layout,
-    font:   { ...font, size: Math.round((font.size ?? 13) * factor) },
-    margin: { t: Math.round(m.t * factor), l: Math.round(m.l * factor),
-              r: Math.round(m.r * factor), b: Math.round(m.b * factor) },
+    font:   { ...font, size: Math.round(base * f.text) },
+    margin: { t: Math.round(m.t * f.text), l: Math.round(m.l * f.text),
+              r: Math.round(m.r * f.text), b: Math.round(m.b * f.text) },
+    legend: { ...(layout.legend ?? {}),
+              font: { ...(layout.legend?.font ?? {}), size: Math.round(base * f.legend) } },
   };
   if (Array.isArray(layout.annotations)) {
     out.annotations = layout.annotations.map(a => ({
       ...a,
-      font: { ...(a.font ?? {}), size: Math.round((a.font?.size ?? 13) * factor) },
+      font: { ...(a.font ?? {}), size: Math.round((a.font?.size ?? base) * f.annot) },
     }));
   }
   return out;
@@ -416,9 +434,14 @@ function _renderPlot(spec, reportKey, reportLabel) {
   const area = _clearChartArea();
   const gen = _renderGen;
   const h = spec.layout?.height ?? 420;
-  const factor = MOBILE_MQ.matches ? MOBILE_PLOT_SCALE : DESKTOP_PLOT_SCALE;
-  const layout = _scaledLayout({ ...PLOTLY_LAYOUT_BASE, ...spec.layout }, factor);
-  const data   = _scaleData(spec.data, factor);
+  const baseFactor = MOBILE_MQ.matches ? MOBILE_PLOT_SCALE : DESKTOP_PLOT_SCALE;
+  const merged = { ...PLOTLY_LAYOUT_BASE, ...spec.layout };
+  // Cramped multi-panel plots keep small ticks but a readable legend/panel titles.
+  const f = _isMultiPanel(merged)
+    ? { text: SUBPLOT_TEXT_FACTOR, legend: SUBPLOT_LEGEND_FACTOR, annot: SUBPLOT_ANNOT_FACTOR }
+    : { text: baseFactor, legend: baseFactor, annot: baseFactor };
+  const layout = _scaledLayout(merged, f);
+  const data   = _scaleData(spec.data, f.text);
 
   if (MOBILE_MQ.matches) {
     _renderPlotImage(area, data, layout, h, reportKey, reportLabel, gen);
@@ -441,6 +464,10 @@ async function _renderPlotImage(area, data, layout, h, reportKey, reportLabel, g
   document.body.appendChild(tmp);
   try {
     await Plotly.newPlot(tmp, data, layout, { ...PLOTLY_CONFIG, staticPlot: true });
+    // Heatmaps (spectrogram, spectrogram diff) aren't fully rasterized when newPlot
+    // resolves, so a first toImage captures a blank plot. Wait two animation frames
+    // so the canvas is painted before snapshotting (TODO_2 #2).
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     const dataUrl = await Plotly.toImage(tmp, { format: 'png', width: SNAPSHOT_WIDTH, height: h });
     if (gen !== _renderGen) return;  // superseded by a newer render
     const img = document.createElement('img');

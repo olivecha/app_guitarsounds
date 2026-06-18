@@ -512,9 +512,9 @@ body {
   .header-title     { font-size: 1.1rem; }
   .tab-content      { padding: 14px; }
 
-  /* Tabs wrap instead of scrolling sideways (TODO_2 #3) */
-  .tab-bar { flex-wrap: wrap; overflow-x: visible; white-space: normal; padding: 0 8px; }
-  .tab-btn { padding: 8px 12px; font-size: 0.8rem; }
+  /* Tabs scroll horizontally only (never vertically) and stay on top (TODO_2 #3/#4) */
+  .tab-bar { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; white-space: nowrap; padding: 0 8px; }
+  .tab-btn { flex: 0 0 auto; padding: 10px 14px; font-size: 0.85rem; }
 
   /* Upload / example / record stack vertically, full width (TODO_2 #1) */
   .upload-area  { flex-direction: column; align-items: stretch; gap: 10px; }
