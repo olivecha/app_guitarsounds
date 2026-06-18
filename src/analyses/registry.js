@@ -53,6 +53,7 @@ export const analyses = {
   ffthist: {
     label:  'Histogramme spectral (FFT)',
     kind:   'adaptive',
+    harmonic: true,
     fn:     adaptive(analysisFftHist, dualFftHist),
     help:   'documentation/binfft.md',
     figure: 'documentation/figures/ffthist.png',
@@ -60,6 +61,7 @@ export const analyses = {
   histband: {
     label:  'Histogramme des bandes',
     kind:   'adaptive',
+    harmonic: true,
     fn:     adaptive(analysisHistBand, dualBinHist),
     help:   'documentation/histband.md',
     figure: 'documentation/figures/histband.png',
@@ -68,6 +70,7 @@ export const analyses = {
   plotband: {
     label:  'Bandes de fréquence',
     kind:   'single',
+    harmonic: true,
     fn:     analysisPlotBand,
     help:   'documentation/plotband.md',
     figure: 'documentation/figures/plotband.png',
@@ -76,13 +79,15 @@ export const analyses = {
     label:  'Écoute par bandes',
     kind:   'single',
     type:   'audio',
+    harmonic: true,
     fn:     analysisListenBand,
     help:   'documentation/listenband.md',
     figure: 'documentation/figures/listenband.png',
   },
   peaks: {
-    label:  'Pics spectraux (FFT)',
+    label:  'Pics harmoniques',
     kind:   'single',
+    harmonic: true,
     fn:     analysisPeaks,
     help:   'documentation/peaks.md',
     figure: 'documentation/figures/peaks.png',
@@ -97,6 +102,7 @@ export const analyses = {
   specgram: {
     label:  'Spectrogramme',
     kind:   'single',
+    harmonic: true,
     fn:     analysisSpecgram,
     help:   'documentation/specgram.md',
     figure: 'documentation/figures/specgram.png',
@@ -105,12 +111,14 @@ export const analyses = {
   fbinplot: {
     label:  'Bandes de fréquence',
     kind:   'multi',
+    harmonic: true,
     fn:     dualFbinPlot,
     help:   'documentation/fbinplot.md',
   },
   binpower: {
     label:  'Puissance des bandes',
     kind:   'multi',
+    harmonic: true,
     fn:     dualBinPower,
     help:   'documentation/binpower.md',
   },
@@ -124,12 +132,14 @@ export const analyses = {
   fftdiff: {
     label:  'Différence spectrale (FFT)',
     kind:   'dual',
+    harmonic: true,
     fn:     dualFftDiff,
     help:   'documentation/fftdiff.md',
   },
   specdiff: {
     label:  'Différence des spectrogrammes',
     kind:   'dual',
+    harmonic: true,
     fn:     dualSpecDiff,
     help:   'documentation/specdiff.md',
   },

@@ -11,7 +11,7 @@ export function analysisSignal(sound) {
       x: Array.from(sound.signal.time()),
       y: Array.from(sound.signal.signal),
       type: 'scatter', mode: 'lines',
-      line: { width: 1, color: '#1f77b4' },
+      line: { width: 1, color: sound.color },
       name: sound.name,
     }],
     layout: {
@@ -29,7 +29,7 @@ export function analysisEnvelope(sound) {
       x: Array.from(times),
       y: Array.from(values),
       type: 'scatter', mode: 'lines',
-      line: { width: 2, color: '#1f77b4' },
+      line: { width: 2, color: sound.color },
       name: sound.name,
     }],
     layout: {
@@ -64,7 +64,7 @@ export function analysisLogEnv(sound) {
 
   return {
     data: [{ x, y, type: 'scatter', mode: 'lines',
-             line: { width: 2, color: '#1f77b4' }, name: sound.name }],
+             line: { width: 2, color: sound.color }, name: sound.name }],
     layout: {
       xaxis: {
         title: 'Temps (s)', type: 'log',
@@ -90,7 +90,7 @@ export function analysisFft(sound) {
     data: [{
       x, y,
       type: 'scatter', mode: 'lines',
-      line: { width: 1, color: '#1f77b4' },
+      line: { width: 1, color: sound.color },
       name: sound.name,
     }],
     layout: {
@@ -126,7 +126,7 @@ export function analysisFftHist(sound) {
     data: [{
       x: xPos, y: counts, width: widths, offset: 0,
       type: 'bar', name: sound.name,
-      marker: { color: '#1f77b4', opacity: 0.7 },
+      marker: { color: sound.color, opacity: 0.7 },
     }],
     layout: {
       xaxis: {
@@ -297,7 +297,7 @@ export function analysisPeaks(sound) {
   return {
     data: [
       { x, y, type: 'scatter', mode: 'lines',
-        line: { width: 1, color: '#1f77b4' }, name: sound.name },
+        line: { width: 1, color: sound.color }, name: sound.name },
       { x: pkX, y: pkY, type: 'scatter', mode: 'markers',
         marker: { color: 'red', size: 8 }, name: 'Pics' },
     ],
@@ -357,7 +357,7 @@ export function analysisTimeDamp(sound) {
     data: [
       { x: Array.from(envT), y: Array.from(env),
         type: 'scatter', mode: 'lines',
-        line: { width: 2, color: '#1f77b4', opacity: 0.6 },
+        line: { width: 2, color: sound.color, opacity: 0.6 },
         name: 'Enveloppe du signal' },
       { x: fitX, y: fitY,
         type: 'scatter', mode: 'lines',

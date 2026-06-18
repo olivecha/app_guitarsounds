@@ -3,15 +3,26 @@
 
 import { Sound } from '../guitarsounds/sound.js';
 import { soundParameters } from '../guitarsounds/parameters.js';
+import { setGenericMode } from './settings.js';
 
 // ── Global sound store ───────────────────────────────────────────────────────
 // Map<id, Sound>  —  id is a stable string key (never reused after delete)
 export const sounds = new Map();
 let _nextId = 1;
 
+// Per-sound colour palette. A sound's colour is its position in the store
+// (matching the numbered selector buttons), so plot traces and the sound-id
+// selectors in the analysis pane stay in sync.
+export const SOUND_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'];
+
+function _assignColors() {
+  let i = 0;
+  for (const s of sounds.values()) { s.color = SOUND_COLORS[i % SOUND_COLORS.length]; i++; }
+}
+
 const _listeners = [];
 export function onSoundsChanged(fn) { _listeners.push(fn); }
-function _notify() { _listeners.forEach(fn => fn(sounds)); }
+function _notify() { _assignColors(); _listeners.forEach(fn => fn(sounds)); }
 
 // ── Audio decode + resample to 22050 Hz mono ─────────────────────────────────
 const TARGET_SR = 22050;
@@ -92,6 +103,24 @@ export async function addSoundFromFile(file) {
   return id;
 }
 
+// Built-in example sounds (served as static files from example_sounds/).
+export const EXAMPLE_SOUNDS = [
+  { file: 'example_sounds/Guitare_1_D4.wav', name: 'Guitare 1 (D4)' },
+  { file: 'example_sounds/Guitare_2_D4.wav', name: 'Guitare 2 (D4)' },
+];
+
+export async function addExampleSound(entry) {
+  let res;
+  try {
+    res = await fetch(entry.file);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  } catch (e) {
+    throw new Error(`Impossible de charger "${entry.name}" : ${e.message}`);
+  }
+  const blob = await res.blob();
+  return addSoundFromBlob(blob, entry.name);
+}
+
 export async function addSoundFromBlob(blob, name) {
   const arrayBuffer = await blob.arrayBuffer();
   let decoded;
@@ -140,6 +169,10 @@ export function initSoundManager(tabEl) {
           <label class="btn-primary" for="file-input">＋ Ajouter un fichier audio</label>
           <input type="file" id="file-input" accept="audio/*" multiple style="display:none" />
           <span class="upload-hint">WAV · MP3 · OGG · FLAC · AAC · M4A…</span>
+          <div class="example-picker">
+            <button id="btn-example" class="btn-secondary" aria-haspopup="true" aria-expanded="false">📁 Charger un exemple de sons</button>
+            <div id="example-menu" class="example-menu" style="display:none"></div>
+          </div>
         </div>
         <div class="upload-right">
           <button id="btn-record" class="btn-secondary">🎙 Enregistrer</button>
@@ -148,6 +181,18 @@ export function initSoundManager(tabEl) {
         </div>
       </div>
       <div id="upload-error" class="error-msg" style="display:none"></div>
+      <div class="generic-mode-row">
+        <label class="generic-mode-label">
+          <input type="checkbox" id="generic-mode-toggle" />
+          Son génériques
+        </label>
+        <button id="generic-mode-help" class="help-toggle-btn" title="Aide">?</button>
+        <p id="generic-mode-help-text" class="generic-mode-help-text" style="display:none">
+          Le mode «&nbsp;Son génériques&nbsp;» désactive les analyses qui assument que le son
+          est harmonique, ce qui permet, par exemple, d'analyser des sons percussifs, comme
+          celui d'un xylophone.
+        </p>
+      </div>
       <div id="sound-list" class="sound-list"></div>
     </div>
   `;
@@ -167,8 +212,67 @@ export function initSoundManager(tabEl) {
   });
 
   _initRecordingUI();
+  _initExampleUI();
+  _initGenericModeUI();
 
   onSoundsChanged(() => _renderSoundList());
+}
+
+// ── "Son génériques" toggle ────────────────────────────────────────────────────
+function _initGenericModeUI() {
+  const toggle  = document.getElementById('generic-mode-toggle');
+  const helpBtn = document.getElementById('generic-mode-help');
+  const helpTxt = document.getElementById('generic-mode-help-text');
+
+  toggle.addEventListener('change', () => setGenericMode(toggle.checked));
+
+  helpBtn.addEventListener('click', () => {
+    const show = helpTxt.style.display === 'none';
+    helpTxt.style.display = show ? 'block' : 'none';
+    helpBtn.classList.toggle('active', show);
+  });
+}
+
+// ── Example sounds picker ──────────────────────────────────────────────────────
+function _initExampleUI() {
+  const btn   = document.getElementById('btn-example');
+  const menu  = document.getElementById('example-menu');
+  const errEl = document.getElementById('upload-error');
+
+  const closeMenu = () => {
+    menu.style.display = 'none';
+    btn.setAttribute('aria-expanded', 'false');
+  };
+
+  // Build one menu item per example sound; each loads a single sound.
+  for (const entry of EXAMPLE_SOUNDS) {
+    const item = document.createElement('button');
+    item.className = 'example-menu-item';
+    item.textContent = entry.name;
+    item.addEventListener('click', async () => {
+      closeMenu();
+      errEl.style.display = 'none';
+      try {
+        await addExampleSound(entry);
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      }
+    });
+    menu.appendChild(item);
+  }
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = menu.style.display !== 'none';
+    if (open) { closeMenu(); }
+    else { menu.style.display = 'block'; btn.setAttribute('aria-expanded', 'true'); }
+  });
+
+  // Close when clicking outside the picker.
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.example-picker')) closeMenu();
+  });
 }
 
 // ── Recording UI ──────────────────────────────────────────────────────────────

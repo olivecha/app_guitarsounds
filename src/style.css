@@ -13,9 +13,12 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Root font size sets the rem base; +2pt scales the whole rem-based UI up. */
+html { font-size: calc(16px + 2pt); }
+
 body {
   font-family: var(--font);
-  font-size: 16px;
+  font-size: 1rem;
   color: var(--text);
   background: var(--bg);
   min-height: 100vh;
@@ -270,6 +273,89 @@ body {
 .upload-left  { display: flex; align-items: center; gap: 12px; }
 .upload-right { display: flex; align-items: center; gap: 10px; }
 .upload-hint  { font-size: 0.85rem; color: var(--text-muted); }
+
+/* ── Flat plot image (mobile) ────────────── */
+.plot-image { width: 100%; height: auto; display: block; }
+
+/* ── Normalize control (analysis sidebar) ── */
+.normalize-control { margin: 4px 0 10px; }
+.normalize-row { display: flex; align-items: center; gap: 8px; }
+.normalize-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.normalize-help-text {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+
+/* ── Generic-sounds toggle ───────────────── */
+.generic-mode-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 16px;
+}
+.generic-mode-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.generic-mode-help-text {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: var(--sidebar-bg);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+}
+
+/* ── Example sounds picker ───────────────── */
+.example-picker { position: relative; display: inline-block; }
+.example-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  min-width: 100%;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.example-menu-item {
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  text-align: left;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.example-menu-item:hover { background: var(--sidebar-bg); color: var(--accent); }
 
 .sound-list { display: flex; flex-direction: column; gap: 8px; }
 

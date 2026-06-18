@@ -4,8 +4,6 @@
 
 import { octaveHistogram, octaveValues, trapezoid, cumulativeTrapezoid } from '../guitarsounds/utils.js';
 
-const COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'];
-
 const BIN_LABELS = {
   bass: 'Basses', mid: 'Mids', highmid: 'High-Mids',
   uppermid: 'Upper-Mids', presence: 'Présence', brillance: 'Brillance',
@@ -21,7 +19,7 @@ export function dualSignal(sounds) {
     data: sounds.map((s, i) => ({
       x: Array.from(s.signal.time()), y: Array.from(s.signal.signal),
       type: 'scatter', mode: 'lines',
-      line: { width: 1, color: COLORS[i % COLORS.length] }, name: s.name,
+      line: { width: 1, color: s.color }, name: s.name,
     })),
     layout: { xaxis: { title: 'Temps (s)' }, yaxis: { title: 'Amplitude' } },
   };
@@ -33,7 +31,7 @@ export function dualEnvelope(sounds) {
       const { values, times } = s.signal.envelope();
       return { x: Array.from(times), y: Array.from(values),
                type: 'scatter', mode: 'lines',
-               line: { width: 2, color: COLORS[i % COLORS.length] }, name: s.name };
+               line: { width: 2, color: s.color }, name: s.name };
     }),
     layout: { xaxis: { title: 'Temps (s)' }, yaxis: { title: 'Amplitude (0 à 1)' } },
   };
@@ -52,7 +50,7 @@ export function dualLogEnv(sounds) {
     }
     if (times[times.length - 1] > xMax) xMax = times[times.length - 1];
     return { x, y, type: 'scatter', mode: 'lines',
-             line: { width: 2, color: COLORS[i % COLORS.length] }, name: s.name };
+             line: { width: 2, color: s.color }, name: s.name };
   });
   return {
     data,
@@ -74,7 +72,7 @@ export function dualFft(sounds) {
       return { x: cut === -1 ? freqs : freqs.slice(0, cut),
                y: cut === -1 ? amp   : amp.slice(0, cut),
                type: 'scatter', mode: 'lines',
-               line: { width: 1, color: COLORS[i % COLORS.length] }, name: s.name };
+               line: { width: 1, color: s.color }, name: s.name };
     }),
     layout: {
       xaxis: { title: 'Fréquence (Hz)' },
@@ -100,7 +98,7 @@ export function dualFftHist(sounds) {
         }
       }
       return { x: xPos, y: c, width: widths, offset: 0, type: 'bar',
-               name: s.name, opacity: 0.6, marker: { color: COLORS[i % COLORS.length] } };
+               name: s.name, opacity: 0.6, marker: { color: s.color } };
     }),
     layout: {
       barmode: 'overlay', bargap: 0,
@@ -124,9 +122,9 @@ export function dualFftMirror([s1, s2]) {
   return {
     data: [
       { x: f1.slice(0, n1), y: a1.slice(0, n1), type: 'scatter', mode: 'lines',
-        name: s1.name, line: { color: COLORS[0] } },
+        name: s1.name, line: { color: s1.color } },
       { x: f2.slice(0, n2), y: a2.slice(0, n2).map(v => -v), type: 'scatter', mode: 'lines',
-        name: s2.name, line: { color: COLORS[1] } },
+        name: s2.name, line: { color: s2.color } },
     ],
     layout: {
       xaxis: { title: 'Fréquence (Hz)' },
@@ -168,13 +166,13 @@ export function dualFftDiff([s1, s2]) {
   return {
     data: [
       { x: edges.slice(0,-1), y: c1, width: widths, offset: 0, type: 'bar',
-        name: s1.name, opacity: 0.6, xaxis: 'x', yaxis: 'y', marker: { color: COLORS[0] } },
+        name: s1.name, opacity: 0.6, xaxis: 'x', yaxis: 'y', marker: { color: s1.color } },
       { x: edges.slice(0,-1), y: c2, width: widths, offset: 0, type: 'bar',
-        name: s2.name, opacity: 0.6, xaxis: 'x', yaxis: 'y', marker: { color: COLORS[1] } },
+        name: s2.name, opacity: 0.6, xaxis: 'x', yaxis: 'y', marker: { color: s2.color } },
       { x: posX, y: posY, width: posW, offset: 0, type: 'bar', showlegend: false,
-        xaxis: 'x2', yaxis: 'y2', marker: { color: COLORS[0], opacity: 0.6 } },
+        xaxis: 'x2', yaxis: 'y2', marker: { color: s1.color, opacity: 0.6 } },
       { x: negX, y: negY, width: negW, offset: 0, type: 'bar', showlegend: false,
-        xaxis: 'x2', yaxis: 'y2', marker: { color: COLORS[1], opacity: 0.6 } },
+        xaxis: 'x2', yaxis: 'y2', marker: { color: s2.color, opacity: 0.6 } },
     ],
     layout: {
       grid: { rows: 1, columns: 2, pattern: 'independent' },
@@ -322,7 +320,7 @@ export function dualFbinPlot(sounds) {
         if (times[i] >= xMin) { x.push(times[i]); y.push(values[i]); }
       }
       data.push({ x, y, type: 'scatter', mode: 'lines', name: s.name,
-                  line: { width: 1.5, color: COLORS[si % COLORS.length] },
+                  line: { width: 1.5, color: s.color },
                   xaxis: xa, yaxis: ya,
                   showlegend: bi === 0, legendgroup: s.name });
     });
@@ -353,7 +351,7 @@ export function dualBinHist(sounds) {
   return {
     data: sounds.map((s, i) => ({
       x: xLabels, y: soundIntegrals[i].map(v => v / globalMax),
-      type: 'bar', name: s.name, marker: { color: COLORS[i % COLORS.length] },
+      type: 'bar', name: s.name, marker: { color: s.color },
     })),
     layout: {
       barmode: 'group',
@@ -384,7 +382,7 @@ export function dualBinPower(sounds) {
       const tMax = times[times.length - 1] || 1;
       data.push({ x: times.map(t => t / tMax), y: integral.map(v => v / binMax),
                   type: 'scatter', mode: 'lines', name: s.name,
-                  line: { width: 1.5, color: COLORS[si % COLORS.length] },
+                  line: { width: 1.5, color: s.color },
                   xaxis: xa, yaxis: ya,
                   showlegend: bi === 0, legendgroup: s.name });
     });
