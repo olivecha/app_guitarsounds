@@ -354,6 +354,14 @@ const PLOTLY_LAYOUT_BASE = {
 const MOBILE_MQ      = window.matchMedia('(max-width: 768px)');
 const SNAPSHOT_WIDTH = 900;
 
+// Plot text / line scaling (TODO_2 #5). Fonts, line widths and marker sizes are
+// scaled centrally so every analysis benefits without per-function edits.
+// Mobile is large because the snapshot is rendered at SNAPSHOT_WIDTH (900px) and
+// then shrunk to the phone width, so everything must be oversized to stay legible.
+// These are deliberately tunable — adjust after viewing on a real device.
+const DESKTOP_PLOT_SCALE = 1.2;
+const MOBILE_PLOT_SCALE  = 2.2;
+
 // Incremented on every render so an in-flight async (mobile) snapshot can detect
 // that a newer render has superseded it and skip appending stale content.
 let _renderGen = 0;
@@ -371,33 +379,68 @@ function _clearChartArea() {
   return area;
 }
 
+// Scale a layout's font, margins and annotation fonts so larger text stays legible
+// and doesn't get clipped (annotations are the subplot titles in the bin plots).
+function _scaledLayout(layout, factor) {
+  const font = layout.font   ?? PLOTLY_LAYOUT_BASE.font;
+  const m    = layout.margin ?? PLOTLY_LAYOUT_BASE.margin;
+  const out = {
+    ...layout,
+    font:   { ...font, size: Math.round((font.size ?? 13) * factor) },
+    margin: { t: Math.round(m.t * factor), l: Math.round(m.l * factor),
+              r: Math.round(m.r * factor), b: Math.round(m.b * factor) },
+  };
+  if (Array.isArray(layout.annotations)) {
+    out.annotations = layout.annotations.map(a => ({
+      ...a,
+      font: { ...(a.font ?? {}), size: Math.round((a.font?.size ?? 13) * factor) },
+    }));
+  }
+  return out;
+}
+
+// Scale per-trace line widths and marker sizes.
+function _scaleData(data, factor) {
+  return data.map(tr => {
+    const t = { ...tr };
+    if (t.line && t.line.width != null) t.line = { ...t.line, width: t.line.width * factor };
+    if (t.marker && t.marker.size != null) {
+      const s = t.marker.size;
+      t.marker = { ...t.marker, size: Array.isArray(s) ? s.map(v => v * factor) : s * factor };
+    }
+    return t;
+  });
+}
+
 function _renderPlot(spec, reportKey, reportLabel) {
   const area = _clearChartArea();
   const gen = _renderGen;
   const h = spec.layout?.height ?? 420;
-  const layout = { ...PLOTLY_LAYOUT_BASE, ...spec.layout };
+  const factor = MOBILE_MQ.matches ? MOBILE_PLOT_SCALE : DESKTOP_PLOT_SCALE;
+  const layout = _scaledLayout({ ...PLOTLY_LAYOUT_BASE, ...spec.layout }, factor);
+  const data   = _scaleData(spec.data, factor);
 
   if (MOBILE_MQ.matches) {
-    _renderPlotImage(area, spec, layout, h, reportKey, reportLabel, gen);
+    _renderPlotImage(area, data, layout, h, reportKey, reportLabel, gen);
     return;
   }
 
   const div = document.createElement('div');
   div.style.cssText = `width:100%;height:${h}px;`;
   area.appendChild(div);
-  Plotly.newPlot(div, spec.data, layout, PLOTLY_CONFIG);
+  Plotly.newPlot(div, data, layout, PLOTLY_CONFIG);
 
   if (reportKey) _attachReportBtn(div, reportKey, reportLabel, h);
 }
 
 // Mobile path: render off-screen, snapshot to a flat PNG, then discard the live
 // Plotly instance so the page can scroll normally over the chart.
-async function _renderPlotImage(area, spec, layout, h, reportKey, reportLabel, gen) {
+async function _renderPlotImage(area, data, layout, h, reportKey, reportLabel, gen) {
   const tmp = document.createElement('div');
   tmp.style.cssText = `position:absolute;left:-99999px;top:0;width:${SNAPSHOT_WIDTH}px;height:${h}px;`;
   document.body.appendChild(tmp);
   try {
-    await Plotly.newPlot(tmp, spec.data, layout, { ...PLOTLY_CONFIG, staticPlot: true });
+    await Plotly.newPlot(tmp, data, layout, { ...PLOTLY_CONFIG, staticPlot: true });
     const dataUrl = await Plotly.toImage(tmp, { format: 'png', width: SNAPSHOT_WIDTH, height: h });
     if (gen !== _renderGen) return;  // superseded by a newer render
     const img = document.createElement('img');

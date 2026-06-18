@@ -456,6 +456,7 @@ body {
   flex: 1;
   text-align: left;
   background: white;
+  color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 7px 10px;
@@ -506,14 +507,32 @@ body {
 @media (max-width: 700px) {
   .analysis-panel   { flex-direction: column; }
   .analysis-sidebar { width: 100%; max-height: 40vh; }
-  .sound-audio      { min-width: 0; width: 100%; }
-  .sound-row        { flex-wrap: wrap; }
-  .tab-bar          { overflow-x: auto; white-space: nowrap; }
-  .tab-btn          { padding: 12px 14px; font-size: 0.85rem; }
   .app-header       { padding: 10px 14px; }
   .header-logo      { height: 48px; }
   .header-title     { font-size: 1.1rem; }
   .tab-content      { padding: 14px; }
+
+  /* Tabs wrap instead of scrolling sideways (TODO_2 #3) */
+  .tab-bar { flex-wrap: wrap; overflow-x: visible; white-space: normal; padding: 0 8px; }
+  .tab-btn { padding: 8px 12px; font-size: 0.8rem; }
+
+  /* Upload / example / record stack vertically, full width (TODO_2 #1) */
+  .upload-area  { flex-direction: column; align-items: stretch; gap: 10px; }
+  .upload-left  { flex-direction: column; align-items: stretch; gap: 10px; }
+  .upload-right { width: 100%; }
+  .upload-left > .btn-primary,
+  .example-picker,
+  .example-picker > .btn-secondary,
+  #btn-record { width: 100%; text-align: center; }
+  .upload-hint { text-align: center; }
+
+  /* Sound row: name + action buttons on top, audio player full-width below (TODO_2 #2) */
+  .sound-row    { flex-wrap: wrap; }
+  .sound-audio  { order: 10; flex-basis: 100%; width: 100%; min-width: 0; }
+
+  /* Fourier: audio player drops below the "Écouter le son :" label (TODO_2 #6) */
+  #listenContainer       { flex-direction: column; align-items: flex-start; }
+  #listenContainer audio { width: 100%; }
 }
 
 /* ── Listenband audio rows ───────────────── */
