@@ -16,25 +16,26 @@ exitButton.addEventListener("click", function() {
 document.addEventListener("DOMContentLoaded", function () {
 
 
-const gitHubPrefix = "https://raw.githubusercontent.com/olivecha/guitpsyexp/main/";
+// Sound files are served from this directory (committed alongside the app), so
+// paths are relative to guitpsyexp/index.html — both when embedded as an iframe
+// and when the study is opened standalone.
 
-// --- Audio files (same as before) ---
-const audioFilesChordsDf1 = [
-    "sample_sounds2/chords/cho_df010_af075.wav",
-    "sample_sounds2/chords/cho_df010_af100.wav",
-    "sample_sounds2/chords/cho_df010_af150.wav",
-];
-const audioFilesChordsDf2 = [
-    "sample_sounds2/chords/cho_df050_af100.wav",
-    "sample_sounds2/chords/cho_df050_af150.wav",
-    "sample_sounds2/chords/cho_df050_af075.wav",
-];
-const audioFilesChordsDf3 = [
-    "sample_sounds2/chords/cho_df080_af150.wav",
-    "sample_sounds2/chords/cho_df080_af075.wav",
+// --- Audio files ---
+// Orthogonal study design: only sounds where one parameter is held at its
+// reference value of 1.00 are presented. Each type (chords / melodies) has two
+// arms that intersect at the reference sound (df100, af100):
+//   - FixedAttack: attack = 1.00 (af100), decay varies   -> isolates decay
+//   - FixedDecay : decay  = 1.00 (df100), attack varies  -> isolates attack
+// Sounds varying BOTH parameters at once are intentionally excluded: the full 2D
+// cross matrix of (decay, attack) can't be populated with enough samples, so each
+// comparison isolates a single parameter against the reference.
+const audioFilesChordsFixedAttack = [
+    "sample_sounds2/chords/cho_df100_af100.wav",
     "sample_sounds2/chords/cho_df080_af100.wav",
+    "sample_sounds2/chords/cho_df050_af100.wav",
+    "sample_sounds2/chords/cho_df010_af100.wav",
 ];
-const audioFilesChordsDf4 = [
+const audioFilesChordsFixedDecay = [
     "sample_sounds2/chords/cho_df100_af100.wav",
     "sample_sounds2/chords/cho_df100_af050.wav",
     "sample_sounds2/chords/cho_df100_af125.wav",
@@ -43,59 +44,14 @@ const audioFilesChordsDf4 = [
     "sample_sounds2/chords/cho_df100_af085.wav",
     "sample_sounds2/chords/cho_df100_af200.wav",
 ];
-const audioFilesChordsAf1 = [
-    "sample_sounds2/chords/cho_df100_af075.wav",
-    "sample_sounds2/chords/cho_df080_af075.wav",
-    "sample_sounds2/chords/cho_df050_af075.wav",
-    "sample_sounds2/chords/cho_df010_af075.wav",
-];
-const audioFilesChordsAf2 = [
-    "sample_sounds2/chords/cho_df100_af100.wav",
-    "sample_sounds2/chords/cho_df080_af100.wav",
-    "sample_sounds2/chords/cho_df050_af100.wav",
-    "sample_sounds2/chords/cho_df010_af100.wav",
-];
-const audioFilesChordsAf3 = [
-    "sample_sounds2/chords/cho_df100_af150.wav",
-    "sample_sounds2/chords/cho_df080_af150.wav",
-    "sample_sounds2/chords/cho_df050_af150.wav",
-    "sample_sounds2/chords/cho_df010_af150.wav",
-];
 
-const audioFilesMelodiesAf1 = [
-    "sample_sounds2/melody/mel_df050_af075.wav",
-    "sample_sounds2/melody/mel_df080_af075.wav",
-    "sample_sounds2/melody/mel_df100_af075.wav",
-];
-const audioFilesMelodiesAf2 = [
+const audioFilesMelodiesFixedAttack = [
     "sample_sounds2/melody/mel_df010_af100.wav",
     "sample_sounds2/melody/mel_df050_af100.wav",
     "sample_sounds2/melody/mel_df080_af100.wav",
     "sample_sounds2/melody/mel_df100_af100.wav",
 ];
-const audioFilesMelodiesAf3 = [
-    "sample_sounds2/melody/mel_df010_af150.wav",
-    "sample_sounds2/melody/mel_df050_af150.wav",
-    "sample_sounds2/melody/mel_df080_af150.wav",
-    "sample_sounds2/melody/mel_df100_af150.wav",
-];
-
-const audioFilesMelodiesDf1 = [
-    "sample_sounds2/melody/mel_df010_af075.wav",
-    "sample_sounds2/melody/mel_df010_af100.wav",
-    "sample_sounds2/melody/mel_df010_af150.wav",
-];
-const audioFilesMelodiesDf2 = [
-    "sample_sounds2/melody/mel_df050_af075.wav",
-    "sample_sounds2/melody/mel_df050_af100.wav",
-    "sample_sounds2/melody/mel_df050_af150.wav",
-];
-const audioFilesMelodiesDf3 = [
-    "sample_sounds2/melody/mel_df080_af150.wav",
-    "sample_sounds2/melody/mel_df080_af075.wav",
-    "sample_sounds2/melody/mel_df080_af100.wav",
-];
-const audioFilesMelodiesDf4 = [
+const audioFilesMelodiesFixedDecay = [
     "sample_sounds2/melody/mel_df100_af100.wav",
     "sample_sounds2/melody/mel_df100_af050.wav",
     "sample_sounds2/melody/mel_df100_af125.wav",
@@ -105,13 +61,9 @@ const audioFilesMelodiesDf4 = [
     "sample_sounds2/melody/mel_df100_af200.wav",
 ];
 
-const audioFilesMelodiesFixedAttack = [audioFilesMelodiesAf1, audioFilesMelodiesAf2, audioFilesMelodiesAf3];
-const audioFilesMelodiesFixedDecay = [audioFilesMelodiesDf1, audioFilesMelodiesDf2, audioFilesMelodiesDf3, audioFilesMelodiesDf4];
-const audioFilesMelodies = [audioFilesMelodiesFixedAttack, audioFilesMelodiesFixedDecay];
-
-const audioFilesChordsFixedAttack = [audioFilesChordsAf1, audioFilesChordsAf2, audioFilesChordsAf3];
-const audioFilesChordsFixedDecay = [audioFilesChordsDf1, audioFilesChordsDf2, audioFilesChordsDf3, audioFilesChordsDf4];
-const audioFilesChords = [audioFilesChordsFixedAttack, audioFilesChordsFixedDecay];
+// Each arm is a single group; [fixedAttackGroups, fixedDecayGroups] per type.
+const audioFilesChords   = [[audioFilesChordsFixedAttack],   [audioFilesChordsFixedDecay]];
+const audioFilesMelodies = [[audioFilesMelodiesFixedAttack], [audioFilesMelodiesFixedDecay]];
 
 const audioFiles = [audioFilesChords, audioFilesMelodies];
 
@@ -314,18 +266,21 @@ function loadRandomAudio(btn, firstRun=false) {
     const paramValChoice = Math.floor(Math.random() * paramFiles.length);
     const audioFilesCurrent = paramFiles[paramValChoice];
 
+    // Pick two DISTINCT sounds from the group so A and B are never identical.
+    // (Every group has >= 3 sounds.) B is drawn uniformly from the indices != A.
     const randomIndexA = Math.floor(Math.random() * audioFilesCurrent.length);
-    const randomIndexB = Math.floor(Math.random() * audioFilesCurrent.length);
+    let randomIndexB = Math.floor(Math.random() * (audioFilesCurrent.length - 1));
+    if (randomIndexB >= randomIndexA) randomIndexB += 1;
     const randomFileA = audioFilesCurrent[randomIndexA];
     const randomFileB = audioFilesCurrent[randomIndexB];
 
     const audioElementA = document.createElement("audio");
     audioElementA.controls = true;
-    audioElementA.src = gitHubPrefix + randomFileA;
+    audioElementA.src = randomFileA;
 
     const audioElementB = document.createElement("audio");
     audioElementB.controls = true;
-    audioElementB.src = gitHubPrefix + randomFileB;
+    audioElementB.src = randomFileB;
 
     soundALabel.style.color = labelColors[colorId];
     soundBLabel.style.color = labelColors[colorId];
@@ -343,7 +298,8 @@ function loadRandomAudio(btn, firstRun=false) {
 
     let el = document.querySelector('input[name="sound-choice"]:checked');
     if (el && !firstRun) {
-        let soundChoice = el.value;
+        // "none" = no perceived difference between the two sounds -> stored as "F"
+        let soundChoice = el.value === "none" ? "F" : el.value;
         let soundInfoA = soundParamFromFile(randomFileA);
         let soundInfoB = soundParamFromFile(randomFileB);
 
@@ -370,6 +326,7 @@ function loadRandomAudio(btn, firstRun=false) {
 
     document.getElementById('SonA').checked = false;
     document.getElementById('SonB').checked = false;
+    document.getElementById('SonNone').checked = false;
 }
 
 function saveUserInfoAndHideQuestions() {
