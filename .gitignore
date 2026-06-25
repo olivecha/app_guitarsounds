@@ -7,6 +7,9 @@ scratch.ipynb
 .ipynb_checkpoints
 test*.png
 figure_cache/*.png
+guitpsyexp/sample_sounds2
+guitpsyexp/sample_sounds
+guitpsyexp/script.js
 claude
 legacy_app
 temp.wav

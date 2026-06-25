@@ -18,14 +18,19 @@
 </head>
 <body>
 
-  <!-- Header -->
+  <!-- Global header: logo + top-level mode tabs.
+       The two mode tabs stand in for the page title (one per embedded app). -->
   <header class="app-header">
     <img src="documentation/figures/logo.png" alt="Logo" class="header-logo" onerror="this.style.display='none'" />
-    <div class="header-text">
-      <h1 class="header-title">Analyse comparative de sons de guitare</h1>
-      <span class="header-version">V 3.0</span>
-    </div>
+    <nav class="mode-bar">
+      <button class="mode-btn active" data-mode="analyse-app">Analyse comparative de sons de guitare</button>
+      <button class="mode-btn" data-mode="etude">Étude psycho-acoustique</button>
+    </nav>
+    <span class="header-version">V 3.0</span>
   </header>
+
+  <!-- ===== MODE 1 : Analyse comparative de sons de guitare ===== -->
+  <div id="mode-analyse-app" class="mode-panel active">
 
   <!-- Tab bar -->
   <nav class="tab-bar">
@@ -88,6 +93,20 @@
       <div id="apropos-content" class="markdown-body">Chargement…</div>
     </section>
   </main>
+
+  </div><!-- /#mode-analyse-app -->
+
+  <!-- ===== MODE 2 : Étude psycho-acoustique ===== -->
+  <!-- The study is a self-contained page (own styles, consent modal, OneDrive
+       storage). It is embedded as an iframe so its global styles and full-screen
+       consent overlay stay sandboxed from the analysis app. The src is set lazily
+       on first activation (see src/main.js) so its remote sounds aren't fetched
+       for users who never open the study. -->
+  <div id="mode-etude" class="mode-panel">
+    <iframe id="study-frame" class="study-frame"
+            title="Étude psycho-acoustique"
+            data-src="guitpsyexp/index.html"></iframe>
+  </div>
 
   <!-- ES module entry point (loaded after CDN globals are ready) -->
   <script type="module" src="src/main.js"></script>

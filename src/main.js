@@ -2,6 +2,26 @@ import { initSoundManager } from './ui/soundManager.js';
 import { initAnalysisPanel } from './ui/analysisPanel.js';
 import { initReportPanel } from './ui/reportPanel.js';
 
+// ── Top-level mode switching (analysis app ↔ psychoacoustic study) ──────────────
+const modeBtns   = document.querySelectorAll('.mode-btn');
+const modePanels = document.querySelectorAll('.mode-panel');
+
+modeBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.mode;
+    modeBtns.forEach(b => b.classList.remove('active'));
+    modePanels.forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`mode-${target}`).classList.add('active');
+
+    // Lazy-load the study iframe the first time the study mode is opened.
+    if (target === 'etude') {
+      const frame = document.getElementById('study-frame');
+      if (frame && !frame.src) frame.src = frame.dataset.src;
+    }
+  });
+});
+
 // ── Tab switching ─────────────────────────────────────────────────────────────
 const tabBtns   = document.querySelectorAll('.tab-btn');
 const tabPanels = document.querySelectorAll('.tab-panel');

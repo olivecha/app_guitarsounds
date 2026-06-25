@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Étude Psychoacoustique</title>
+    <style>
+        :root {
+            --backgroud-color: #ebe8df;
+            --text-color: #2e2d2b;
+            --minor-point-color: #586c36;
+        }
+        body {
+            font: 20px Arial;
+            color: var(--text-color);
+            background-color: var(--backgroud-color);
+        }
+        /* Modal backdrop */
+        #overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,1.0); /* semi-transparent black */
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 9999;
+        }
+        /* Modal content */
+        #modal {
+          background: white;
+          padding: 2em;
+          border-radius: 10px;
+          text-align: center;
+          max-width: 800px;
+          max-height: 80vh;      /* modal never exceeds viewport height */
+          overflow-y: auto;      /* scroll vertically if content is too tall */
+        }
+        /* button to close the consent form */
+        #close-button {
+          margin-top: 1em;
+          padding: 0.5em 1em;
+          cursor: pointer;
+        }
+        #exit-button {
+          margin-top: 1em;
+          padding: 0.5em 1em;
+          cursor: pointer;
+        }
+
+        #header {
+          display: flex;
+          justify-content: flex-start;
+          margin-left: auto;
+          margin-right: auto;
+          text-align: center;
+          border: none;
+          border-bottom: 2px solid var(--text-color);
+        }
+
+        div {}
+        /* divs to organise elements in the main page */
+        .stack{
+            display: flex;
+            flex-direction: column;
+            gap: 1em; /* space between rows */
+            padding: 10px;
+        }
+        .row{
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            padding: 10px;
+        }
+        .row2{
+            /* gap: 10px; */
+            padding: 5px;
+            align-items: left;
+            /* border: 1px solid black; */
+        }
+        .container {
+            display: flex;
+            justify-content: space-evenly; /* even spacing */
+            gap: 1em; /* optional spacing between columns */
+            padding: 20px;
+            border: 1px solid black;
+        }
+        .column {
+            flex: 1; /* each column takes equal space */
+            /* display: flex; */
+            /* flex-direction: column; */
+            border: 1px solid black;
+            align-items: left; /* center content horizontally */
+            justify-content: left; /* center content vertically if height increases */
+            text-align: left;
+            padding: 10px;
+        }
+
+        audio {
+        }
+        h1 {
+            margin: 0;
+            padding: 30px;
+            /* border: 1px solid black; */
+            align-self: flex-start;
+            font-weight: normal;
+        }
+        button {
+        /* background-color: #4CAF50;  green background */
+        /* color: white;              /* white text */
+        padding: 15px 30px;        /* bigger button size */
+        font-size: 18px;           /* larger text */
+        /* border: none;              /* remove default border */
+        border-radius: 8px;        /* rounded corners */
+        cursor: pointer;           /* hand cursor on hover */
+        transition: background 0.3s ease; /* smooth hover effect */
+        }
+        .right-list {
+        margin-left: auto;
+        width: fit-content; /* or a fixed width */
+        text-align: left;
+        }
+    </style>
+
+</head>
+<body>
+    <div id="overlay">
+      <div id="modal">
+          <h3> 
+              Formulaire d'information et de consentement pour la participation à un projet de recherche 
+          </h3>
+            <p style="text-align: left;">
+            <b> Titre du projet de recherche:</b> Étude psychoacoustique de
+            l’effet de la réponse temporelle d’une guitare sur la qualité
+            d’instrument perçue 
+            <br>
+            <br>
+            <b> Objectifs de la recherche: </b>
+            Les objectifs du présent projet de recherche
+            sont de mesurer la qualité
+            perçue d'une guitare en fonction du son produit par celle-ci et de
+            mesurer les seuils minimaux de perception de certains attributs du son
+            produit. 
+            <br>
+            <br>
+            <b> Nature et durée de votre participation:</b>
+            En tant que participant, il vous est attendu de répondre au
+            questionnaire préliminaire anonyme sur votre compétence musicale et la
+            méthode d'écoute utilisée. Ensuite, votre participation à l'étude
+            consistera à écouter les sons présentés et choisir le son que vous
+            associez à un instrument de meilleure qualité. Vous pouvez évaluer
+            autant de sons que vous le souhaitez, mais un minimum de cinq est
+            attendu (le nombre de sons évalué sera indiqué). La durée des sons
+            étant d'environ 5 secondes, votre participation devrait nécessiter
+            moins de 5 minutes.  
+            <br>
+            <br>
+            <b> Mesures pour assurer l’anonymat des participant(e)s et la confidentialité des données:</b>
+            Aucune donnée permettant votre identification n'est sauvegardée. Les
+            réponses au questionnaire et aux choix de sons sont sauvegardées
+            dans un fichier sur un serveur <i>OneDrive</i> académique hébergé
+            au Canada. 
+            <br>
+            <br>
+            <b> Avantages liés à la participation:</b> Aucun avantage, bénéfice
+            ou compensation ne vous sera octroyé pour votre participation.
+            <br>
+            <br>
+            <b> Risques liés à la participation:</b> La participation au projet
+            comporte un risque minimal pour les participants.
+            <br>
+            <br>
+            <b> Droits des participant(e)s:</b>
+            </p>
+            <ol class="right-list">
+            <li>Aucune compensation financière ou matérielle n’est offerte aux
+                participant(e)s.
+            </li> 
+            <li>La participation à ce projet est volontaire. Vous pouvez mettre
+                fin à votre participation à tout moment en quittant la page
+                web. Les réponses pour lesquelles le formulaire a été
+                enregistré seront sauvegardées. Comme le questionnaire est
+                anonyme, il ne vous sera pas possible de demander le retrait
+                des réponses fournies puisque nous ne pouvons pas faire le lien
+                entre vos réponses et votre identité.
+            </li> 
+            </ol>
+            <p style="text-align: left;">
+            <b> Gestion des données de recherche:</b> À la fin de la période de
+            collecte de données, les données seront téléchargées sur un poste
+            de travail afin d'en faire l'analyse pour la rédaction d'une
+            publication scientifique. Les données seront ensuite supprimées du
+            serveur <i>OneDrive</i> et entreposées sur un disque dur dans les
+            bureaux du directeur de l'École de Lutherie Bruand. les résultats
+            de recherche vous seront partagés par le même canal ayant servi à
+            votre recrutement.
+            <br>
+            <br>
+            <b> Questions et plaintes:</b> 
+            <br>
+            <br>
+            Toute question concernant cette recherche peut être adressée aux
+            chercheur(e)s dont les coordonnées apparaissent au bas de cette
+            page. 
+            <br>
+            <br>
+            Ce projet de recherche a été évalué et approuvé par un Comité
+            d’éthique de la recherche du cégep du Vieux Montréal. Toute plainte
+            relative à votre participation à cette recherche peut y être
+            adressée.
+            <br>
+            <br>
+            Pour toute question concernant vos droits en tant que participant à
+            ce projet de recherche ou si vous avez des plaintes à formuler,
+            vous pouvez communiquer avec la Direction adjointe des études aux
+            programmes et à la recherche:<br>
+            <a href="mailto:nsavard@cvm.qc.ca">
+                Envoyer un courriel</a><br> Téléphone: (514) 983-3437, poste 2262.
+            <br>
+            <br>
+            <b> Remerciements:</b> Votre collaboration est essentielle à la
+            réalisation de notre projet et l’équipe de recherche tient à vous
+            en remercier. 
+            <br>
+            <br>
+            <b> Consentement: </b>
+            J’ai lu et compris la présente page qui expose les conditions,
+            les risques et les avantages de ma participation à la recherche
+            intitulée : «Étude psychoacoustique de
+            l’effet de la réponse temporelle d’une guitare sur la qualité
+            d’instrument perçue». Le cas échéant, j’ai obtenu des réponses
+            satisfaisantes aux questions posées au sujet de cette recherche.
+            J’accepte librement de participer. Je peux également refuser de
+            répondre à certaines questions. Mon refus de participer ou de
+            répondre à certaines questions n’aura aucune incidence.
+            </p>
+
+            <div class="row2">
+            <button id="close-button">J’accepte de participer à la recherche</button>
+            <button id="exit-button">Je refuse de participer à la recherche</button>
+            </div>
+
+            <p style="text-align: left;">
+            <b> Déclaration des chercheurs:</b><br>
+            Le chercheur principal, Louis Brillon, s'engage à respecter les
+            modalités du projet de recherche convenues avec le Comité d’éthique de
+            la recherche Cégep du Vieux Montréal. 
+            <br>
+            Les chercheurs déclarent qu'ils n'ont aucun conflit d'intérêt connu qui
+            pourrait influencer le travail de recherche dans le cadre du présent
+            projet.
+            <br>
+            <br>
+            <b> Coordonnées des chercheurs:</b>
+            <br>
+            <br>
+            <b> Chercheur principal </b>
+            <br>
+            Louis Brillon<br>
+            <a href="mailto:louisbrillon@hotmail.com">Envoyer un
+                courriel</a><br>
+            École-atelier Lutherie-Guitare Bruand<br>
+            945 Ch. de Chambly, Longueuil, QC J4H 4A9<br>
+            (450) 679-2630 poste 2665 <br>
+            <br>
+            <b> Co-chercheur </b><br>
+            Olivier Chabot<br>
+            <a href="mailto:olivier.chabot@etud.polymtl.ca">Envoyer un
+                courriel</a><br>
+            École-atelier Lutherie-Guitare Bruand<br>
+            945 Ch. de Chambly, Longueuil, QC J4H 4A9<br>
+            (450) 679-2630 poste 2665 <br>
+            </p>
+      </div>
+    </div>
+
+    <!-- Header removed: the embedding app already shows the Bruand logo and the
+         "Étude psycho-acoustique" tab title above the iframe. -->
+
+    <div class="stack" id="userInfoForm">
+    </div>
+
+    <div class="stack">
+
+      <p>
+        <b> Évaluation des instruments </b>
+        <br>
+        Quelle sonorité de guitare préférez-vous?
+        <br>
+        (ajustez le volume de votre appareil pour une écoute confortable)
+      </p>
+      <div class="row" id="messageContainer">
+      </div>
+
+      <div class="row">
+        <label for="SonA" id="soundALabel">  Instrument A </label><br>
+        <div id="SoundAContainer">
+        </div>
+        <p> Choix :</p>
+        <input type="radio" id="SonA" name="sound-choice" value="A">
+      </div>
+
+      <div class="row">
+        <label for="SonB" id="soundBLabel">  Instrument B </label><br>
+        <div id="SoundBContainer">
+        </div>
+        <p> Choix :</p>
+        <input type="radio" id="SonB" name="sound-choice" value="B">
+      </div>
+
+      <div class="row" id="soundLoadMessage">
+      </div>
+
+      <div class="row">
+        <button id="end-session"> Terminer la session </button>
+        <button id="choice-save">Enregistrer le choix et générer de nouveaux sons</button>
+      </div>
+      <!-- <div class="row">
+        <button id="choice-del">Supprimer mes réponses et terminer la session</button>
+      </div>
+    </div> -->
+
+    <script src="script_onedrive.js"></script>
+</body>
+</html>
+
+
